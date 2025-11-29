@@ -1,0 +1,71 @@
+# POSTGRESQL - ISTRUZIONI E COMANDI
+
+    # Installazione PostgreSQL su Ubuntu/Debian
+    sudo apt update
+    sudo apt install postgresql postgresql-contrib
+
+    # Controllare che il servizio sia attivo
+    sudo systemctl status postgresql
+
+    # Passare all'utente postgres (superuser)
+    sudo -i -u postgres
+    # - sudo -i: apre shell come altro utente
+    # - -u postgres: specifica utente postgres
+
+    # Entrare nella shell di PostgreSQL
+    psql
+    # Il prompt diventa postgres=# 
+    # postgres=#  significa che hai perso
+
+    # Controllare database esistenti
+    \l
+
+    # Controllare utenti esistenti
+    \du
+
+    # Creare un nuovo database
+    CREATE DATABASE mydb;
+
+    # Creare un nuovo utente
+    CREATE USER myuser WITH PASSWORD 'mypassword';
+
+    # Dare permessi all'utente sul database
+    GRANT ALL PRIVILEGES ON DATABASE mydb TO myuser;
+
+    # Dare permessi all'utente sul schema
+    GRANT ALL PRIVILEGES ON SCHEMA public TO myuser;
+
+    # Uscire dalla shell di PostgreSQL
+    \q
+
+    # Collegarsi al database come nuovo utente
+    psql -h localhost -U myuser -d mydb
+    # Inserire password: mypassword
+
+    # Fare drop
+    DROP DATABASE nome_database;
+    DROP ROLE nome_utente;
+
+    # postgres-#
+    Significa che il comando non è terminato (serve ;) 
+
+
+# ATTIVAZIONE APP
+
+    # Creazione ambiente virtuale
+    python3 -m venv env
+
+    # Attivazione ambiente virtuale
+    source env/bin/activate
+
+    # Aggiornamento pip
+    python -m pip install --upgrade pip
+    
+    # Installazione dipendenze
+    pip install fastapi uvicorn python-decouple sqlalchemy psycopg2-binary
+
+    # Se ho requirmetns.txt
+    pip install -r requirements.txt
+
+    # Avvia il server
+    uvicorn main:app --reload
