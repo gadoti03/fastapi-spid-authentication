@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from database.connection import engine, Base
 
-from spid.metadata_generator import router as spid_router
+from routers.login import router as login_router
+from routers.spid import router as spid_router
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -27,10 +28,13 @@ app.add_middleware(
 # create all tables
 Base.metadata.create_all(bind=engine)
 
+# root route
 @app.get("/", response_model=HealthResponse) # response_model=HealthResponse: define the response schema
 async def health():
     return HealthResponse(status="Ok")
 
-# Include other routers
-#    each router has its own routes
+# login route
+app.include_router(login_router)
+
+# spid routes
 app.include_router(spid_router, prefix="/spid")
