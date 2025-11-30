@@ -11,7 +11,7 @@ from spid.acs_handler import verify_saml_signature, extract_spid_attributes
 router = APIRouter()
 
 METADATA_FILE = os.path.join(os.path.dirname(__file__), "../spid/static/metadata.xml")
-IDPS_FILE = os.path.join(os.path.dirname(__file__), "../spid/static/idps_map.js")
+IDPS_FILE = os.path.join(os.path.dirname(__file__), "../spid/static/idps_map.json")
 CERT_IDP_FILE = os.path.join(os.path.dirname(__file__), "../spid/static/certs/crt_idp.pem")
 KEY_SP_FILE = os.path.join(os.path.dirname(__file__), "../spid/static/certs/key.pem")
 CERT_SP_FILE = os.path.join(os.path.dirname(__file__), "../spid/static/certs/crt_sp.pem")
@@ -24,9 +24,9 @@ async def get_metadata():
         return Response(content="Metadata not found", status_code=404)
     
 @router.post("/login")
-async def spid_login(data: SpidLoginRequest):
-    idp = data.idp
-    relay = data.relay_state or "" # se è vuoto e stringa vuota da errore -> metti pagina di default
+async def spid_login(idp: str = Form(...), relay: str = Form("")): # data: SpidLoginRequest
+    # idp = data.idp
+    # relay = data.relay_state or "" # se è vuoto e stringa vuota da errore -> metti pagina di default
 
     # Load map IDP → URL
     with open(IDPS_FILE, "r") as f:

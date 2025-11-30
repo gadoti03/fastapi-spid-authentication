@@ -36,8 +36,8 @@ def sign_xml(xml_str: str, reference_id: str, key_path: str, cert_path: str) -> 
     # Creazione firmatore
     signer = XMLSigner(
         method=methods.enveloped,           # firma enveloped
-        signature_algorithm="rsa-"+config("SIGNATURE_ALGORITHM"),
-        digest_algorithm=config("DIGEST_ALGORITHM"),
+        signature_algorithm="rsa-"+config("MD_ALG"),
+        digest_algorithm=config("MD_ALG"),
         c14n_algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"
     )
     

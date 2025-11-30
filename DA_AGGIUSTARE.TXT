@@ -1,0 +1,2 @@
+in /spid/static/idps_map.json
+    coincidere con uno degli attributi Location presenti nel tag SingleSignOnService riportato nel metadata dell'IdP

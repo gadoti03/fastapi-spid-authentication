@@ -8,8 +8,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from schemas.models import HealthResponse
 
+from fastapi import APIRouter
+from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.requests import Request
     
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 # cors settings
 #   allow all origins to access the API (with fetch API from browser)

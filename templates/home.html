@@ -1,0 +1,42 @@
+<!--
+AGID - AGENZIA PER L'ITALIA DIGITALE
+SPID - SISTEMA PUBBLICO PER L'IDENTITA' DIGITALE
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SPID SP ACCESS BUTTON</title>
+    <meta charset="utf-8" />
+    <link type="text/css" rel="stylesheet" href="/static/css/spid-sp-access-button.min.css" />
+    <script src="/static/js/spid-idps.js"></script>
+</head>
+<body>
+    <div class='container'>
+    
+    <h1 style="font-family:'Titillium Web',HelveticaNeue,Helvetica Neue,Helvetica,Arial,Lucida Grande,sans-serif;font-weight:700;text-align:center">SPID SP ACCESS BUTTON - pagina di esempio</h1>
+
+<h3 style="margin-top:40px;font-family:'Titillium Web',HelveticaNeue,Helvetica Neue,Helvetica,Arial,Lucida Grande,sans-serif;font-weight:700">Versione POST</h3>
+<div class='row'>
+    <!-- AGID - SPID IDP BUTTON DINAMICO * begin * -->
+    <form name="spid_idp_access" action="/spid/login" method="post">
+        <input type="hidden" name="idp" value="Tim" />
+        <a href="#" class="italia-it-button italia-it-button-size-xl button-spid" spid-idp-button="#spid-idp-button-xlarge-post" aria-haspopup="true" aria-expanded="false">
+            <span class="italia-it-button-icon"><img src="/static/img/spid-ico-circle-bb.svg" onerror="this.src='/static/img/spid-ico-circle-bb.png'; this.onerror=null;" alt="" /></span>
+            <span class="italia-it-button-text">Entra con SPID</span>
+        </a>
+        <div id="spid-idp-button-xlarge-post" class="spid-idp-button spid-idp-button-tip spid-idp-button-relative">
+            <ul id="spid-idp-list-xlarge-root-post" class="spid-idp-button-menu" data-spid-remote aria-labelledby="spid-idp">
+                <li><a class="dropdown-item" href="https://www.spid.gov.it">Maggiori informazioni</a></li>
+                <li><a class="dropdown-item" href="https://www.spid.gov.it/richiedi-spid">Non hai SPID?</a></li>
+                <li><a class="dropdown-item" href="https://www.spid.gov.it/serve-aiuto">Serve aiuto?</a></li>
+            </ul>
+        </div>
+    </form>
+    <!-- AGID - SPID IDP BUTTON DINAMICO "ENTRA CON SPID" * end * -->
+</div>
+
+
+    <script type="text/javascript" src="/static/js/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/js/spid-sp-access-button.min.js"></script>
+</body>
+</html>
