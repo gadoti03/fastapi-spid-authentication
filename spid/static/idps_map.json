@@ -1,3 +1,4 @@
+/*coincidere con uno degli attributi Location presenti nel tag SingleSignOnService riportato nel metadata dell'IdP*/
 {
   "Tim": "https://idp.tim.it/sso",
   "Poste": "https://idp.poste.it/sso",
