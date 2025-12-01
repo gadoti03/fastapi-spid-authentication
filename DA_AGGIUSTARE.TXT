@@ -1,2 +1,2 @@
-in /spid/static/idps_map.json
-    coincidere con uno degli attributi Location presenti nel tag SingleSignOnService riportato nel metadata dell'IdP
+1) aggiungere spid mancanti
+    -> la statica che contiene gli entityID va aggionrata (insieme alla lista degli idp)

@@ -22,7 +22,7 @@ async def get_metadata():
         return Response(content="Metadata not found", status_code=404)
     
 @router.post("/login")
-async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data: SpidLoginRequest
+async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data: SpidLoginRequest   
     relay_state = relay_state or "/" # se è vuoto e stringa vuota da errore -> metti pagina di default
 
     # get idp url
@@ -37,20 +37,24 @@ async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data:
     return render_saml_form(idp_url, saml_request, relay_state)
 
 @router.post("/acs")
-async def acs_endpoint(SAMLResponse: str = Form(...), RelayState: str = Form("")):
+async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/")):
     decoded_xml = base64.b64decode(SAMLResponse)
 
-    if not verify_saml_signature(decoded_xml, CERT_IDP_FILE):
+    # decrypt 
+
+    # verify signature
+    if not verify_saml_signature(decoded_xml):
         raise HTTPException(status_code=401, detail="Invalid SAML signature")
     
+    # extract SPID attributes
     user_attrs = extract_spid_attributes(decoded_xml)
     
     codice_fiscale = user_attrs.get("codice_fiscale")
     residenza = user_attrs.get("residenza")
+    
     print(f"Utente autenticato: CF={codice_fiscale}, Residenza={residenza}")
     
-    redirect_url = RelayState or "/"  # se RelayState è vuoto, vai alla home
-    return RedirectResponse(url=redirect_url)
+    return RedirectResponse(url=relayState)
 
 @router.post("/logout/acs")  # ACS = Assertion Consumer Service
 async def spid_logout_response(request: Request):

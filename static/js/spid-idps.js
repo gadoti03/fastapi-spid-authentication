@@ -38,16 +38,26 @@ function spid_populate() {
 function spid_addIdpEntry(data, element) {
   const att = document.createAttribute("data-idp");
   att.value = data['entity_id'];
+
   let li = document.createElement('li');
   li.className = 'spid-idp-button-link';
   li.setAttributeNode(att);
-  if (element.id.indexOf('post')!== -1) {
-    li.innerHTML = `<button class="idp-button-idp-logo" type="submit"><span class="spid-sr-only">${data['organization_name']}</span><img class="spid-idp-button-logo" src="${data['logo_uri']}" alt="${data['organization_name']}" /></button></li>`
-  };  
-  if (element.id.indexOf('get')!== -1) {
-    li.innerHTML = `<a href="#"><span class="spid-sr-only">${data['organization_name']}</span><img src="${data['logo_uri']}" alt="${data['organization_name']}" /></a>`
-  };
-  element.prepend(li)
+
+  // Crea l'input nascosto
+  let input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'idp';
+  input.value = data['entity_id'];
+  li.appendChild(input);
+
+  if (element.id.indexOf('post') !== -1) {
+    li.innerHTML += `<button class="idp-button-idp-logo" type="submit"><span class="spid-sr-only">${data['organization_name']}</span><img class="spid-idp-button-logo" src="${data['logo_uri']}" alt="${data['organization_name']}" /></button>`;
+  }  
+  if (element.id.indexOf('get') !== -1) {
+    li.innerHTML += `<a href="#"><span class="spid-sr-only">${data['organization_name']}</span><img src="${data['logo_uri']}" alt="${data['organization_name']}" /></a>`;
+  }
+
+  element.prepend(li);
 }
 
 // when page is ready populate all spid buttons

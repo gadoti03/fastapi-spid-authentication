@@ -18,11 +18,26 @@ def get_idp_url(idp: str) -> str:
     with open(IDPS_FILE, "r") as f:
         idps_data = json.load(f)
 
+    # Check IdP existence
     if idp not in idps_data:
         raise HTTPException(400, "Invalid IdP")
     
-    idp_url = idps_data[idp]["SingleSignOnService"]["Location"]
-    return idp_url
+    # Get SSO URL
+    idp_entry = idps_data.get(idp)
+    if not idp_entry:
+        raise ValueError(f"IdP {idp} not found")
+    
+    sso_list = idp_entry.get("single_sign_on_service", [])
+    if not sso_list:
+        raise ValueError(f"No SingleSignOnService defined for IdP {idp}")
+        
+    # Find HTTP-Redirect binding
+    slo_post = next((slo for slo in sso_list if slo.get("Binding") == "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"), None)
+    if slo_post is None:
+        raise ValueError(f"No HTTP-POST SingleLogoutService found for IdP {idp}")
+
+    slo_url = slo_post["Location"]
+    return slo_url
 
 def generate_authn_request(idp_url: str) -> str:
     sp_entity_id = config("ENTITY_ID")
