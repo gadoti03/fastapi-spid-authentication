@@ -1,0 +1,23 @@
+
+DATABASE_URL=postgresql://<user>:<password>@localhost:<port>/<name_db>
+
+# PATH SETTINGS
+IDPS_FILE="/<...>/fastapi-spid-authentication/spid/static/idps_data.json"
+METADATA_FILE="/<...>/fastapi-spid-authentication/spid/static/metadata.xml"
+CERT_SP_FILE="/<...>/fastapi-spid-authentication/spid/static/certs/crt.pem"
+KEY_SP_FILE="/<...>/fastapi-spid-authentication/spid/static/certs/key.pem"
+
+# SPID SETTINGS
+COMMON_NAME="Comune di Roma"
+DAYS="3650"
+ENTITY_ID="https://spid.comune.roma.it/metadata"
+NAME_QUALIFIER="https://spid.comune.roma.it/metadata"
+ACS_URL="https://spid.comune.roma.it/acs"
+KEY_LEN="3072"
+LOCALITY_NAME="Roma"
+MD_ALG="sha512"
+ORGANIZATION_IDENTIFIER="PA:IT-c_h501"
+ORGANIZATION_NAME="Comune di Roma"
+
+# OTHER SETTINGS
+URL_ROOT="http://localhost:8000"
