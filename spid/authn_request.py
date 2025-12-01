@@ -1,26 +1,38 @@
 import base64
+import json
 import zlib
-import urllib.parse
+from fastapi import HTTPException
+from fastapi.responses import HTMLResponse
 from lxml import etree
 from datetime import datetime, timezone
 from decouple import config
 import uuid
 from signxml import XMLSigner, methods
 
-def generate_authn_request(sp_entity_id: str) -> str:
+KEY_SP_FILE = config("KEY_SP_FILE")
+CERT_SP_FILE = config("CERT_SP_FILE")
+
+def get_idp_url(idp: str) -> str:
+    IDPS_FILE = config("IDPS_FILE")
+    # Load map IDP → URL
+    with open(IDPS_FILE, "r") as f:
+        idps_data = json.load(f)
+
+    if idp not in idps_data:
+        raise HTTPException(400, "Invalid IdP")
+    
+    idp_url = idps_data[idp]["SingleSignOnService"]["Location"]
+    return idp_url
+
+def generate_authn_request(idp_url: str) -> str:
     sp_entity_id = config("ENTITY_ID")
     name_qualifier = config("NAME_QUALIFIER")           
-    acs_url = config("ACS_URL")                         # Location in AssertionConsumerService URL del SP
-    idp_sso_url = sp_entity_id                          # deve coincidere con uno degli attributi Location presenti nel tag SingleSignOnService riportato nel metadata dell'IdP  -> map JSON IDP → URL                     
+    acs_url = config("ACS_URL")
+    idp_sso_url = idp_url
     xml = generate_authn_request_xml(sp_entity_id, name_qualifier, acs_url, idp_sso_url)
     return xml
 
-def encode_authn_request(xml: str) -> str:
-    deflated = zlib.compress(xml.encode())[2:-4]  # DEFLATE senza header
-    b64_authn = base64.b64encode(deflated).decode()
-    return b64_authn
-
-def sign_xml(xml_str: str, reference_id: str, key_path: str, cert_path: str) -> str:
+def sign_xml(xml_str: str, reference_id: str) -> str:
     # Parsing XML
     parser = etree.XMLParser(remove_blank_text=True)
     xml_doc = etree.fromstring(xml_str.encode("utf-8"), parser=parser)
@@ -28,9 +40,9 @@ def sign_xml(xml_str: str, reference_id: str, key_path: str, cert_path: str) -> 
     # Leggo chiave privata e certificato
     # ??? dovrei aggiungere la possibilità di firmare con piu chiavi/certificati
 
-    with open(key_path, "rb") as f:
+    with open(KEY_SP_FILE, "rb") as f:
         key_data = f.read()
-    with open(cert_path, "rb") as f:
+    with open(CERT_SP_FILE, "rb") as f:
         cert_data = f.read()
     
     # Creazione firmatore
@@ -50,6 +62,27 @@ def sign_xml(xml_str: str, reference_id: str, key_path: str, cert_path: str) -> 
     # Restituisco XML firmato
     return etree.tostring(signed_root, pretty_print=True, xml_declaration=True, encoding="UTF-8").decode("utf-8")
 
+def encode_authn_request(xml: str) -> str:
+    deflated = zlib.compress(xml.encode())[2:-4]  # DEFLATE without header
+    b64_authn = base64.b64encode(deflated).decode()
+    return b64_authn
+
+def render_saml_form(idp_url: str, saml_request: str, relay_state: str) -> str:
+    html_form = f"""
+    <html>
+        <body onload="document.forms[0].submit()">
+            <form method="POST" action="{idp_url}">
+                <input type="hidden" name="SAMLRequest" value="{saml_request}" />
+                <input type="hidden" name="RelayState" value="{relay_state}" />
+                <noscript>
+                    <p>JavaScript is disabled. Click the button below to proceed.</p>
+                    <input type="submit" value="Continue" />
+                </noscript>
+            </form>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_form)
 
 def generate_authn_request_xml(sp_entity_id: str, name_qualifier: str, acs_url: str, idp_sso_url: str) -> str:
     # ID univoco e timestamp
@@ -63,12 +96,12 @@ def generate_authn_request_xml(sp_entity_id: str, name_qualifier: str, acs_url: 
         'ds': "http://www.w3.org/2000/09/xmldsig#"
     }
     
-    # Root AuthnRequest
+    # Root AuthnRequest - POST Binding
     authn_request = etree.Element("{urn:oasis:names:tc:SAML:2.0:protocol}AuthnRequest",
                                   nsmap=NSMAP,
                                   AttributeConsumingServiceIndex="0",
                                   AssertionConsumerServiceURL=acs_url,
-                                  ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+                                  ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",     # Binding per la risposta
                                   Destination=idp_sso_url,
                                   ForceAuthn="true",
                                   ID=request_id,

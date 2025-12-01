@@ -1,6 +1,9 @@
 # DI COSA HO BISOGNO???
 
-PROCESSO CHE OGNI GIORNO ( O SEEIMANA, MESE ) MI AGGIORNA I METADATA
+1) PROCESSO CHE OGNI GIORNO ( O SEEIMANA, MESE ) MI AGGIORNA I METADATA
 QUINDI DI OGNI METADATA MI VA A RACCOGLIERE LE INFORMAZIONI CHE FINISCONO TUTTE IN UN FILE JSON
 
-OGGI: CREO QUESTO GESTORE IN MODO TALE DA POTER RIEMPIRE GIÀ IL FILE JSON
+nel metadata dell'sp c'è 
+1) certificato pubblico signing 
+2) encription (se richiediamo che l'assertion venga firmata) firmiamo la authnrequest con la key.pem e mando quando ricevo la response: verifico che sia buona (la verifico con la lista dei suoi certificati) eventualmente decifro (con key.pem) finito authn
+
