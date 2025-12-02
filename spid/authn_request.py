@@ -1,19 +1,22 @@
+from fastapi import HTTPException
+from fastapi.responses import HTMLResponse
+
 import base64
 import json
 import zlib
-from fastapi import HTTPException
-from fastapi.responses import HTMLResponse
-from lxml import etree
-from datetime import datetime, timezone
-from decouple import config
 import uuid
+from datetime import datetime, timezone
+
+from lxml import etree
 from signxml import XMLSigner, methods
 
-KEY_SP_FILE = config("KEY_SP_FILE")
-CERT_SP_FILE = config("CERT_SP_FILE")
+from settings import settings
+
+KEY_SP_FILE = settings.KEY_SP_FILE
+CERT_SP_FILE = settings.CERT_SP_FILE
 
 def get_idp_url(idp: str) -> str:
-    IDPS_FILE = config("IDPS_FILE")
+    IDPS_FILE = settings.IDPS_FILE
     # Load map IDP → URL
     with open(IDPS_FILE, "r") as f:
         idps_data = json.load(f)
@@ -40,9 +43,9 @@ def get_idp_url(idp: str) -> str:
     return slo_url
 
 def generate_authn_request(idp_url: str) -> str:
-    sp_entity_id = config("ENTITY_ID")
-    name_qualifier = config("NAME_QUALIFIER")           
-    acs_url = config("ACS_URL")
+    sp_entity_id = settings.SP_ENTITY_ID
+    name_qualifier = settings.NAME_QUALIFIER           
+    acs_url = settings.ACS_URL
     idp_sso_url = idp_url
     xml = generate_authn_request_xml(sp_entity_id, name_qualifier, acs_url, idp_sso_url)
     return xml
@@ -63,8 +66,8 @@ def sign_xml(xml_str: str, reference_id: str) -> str:
     # Creazione firmatore
     signer = XMLSigner(
         method=methods.enveloped,           # firma enveloped
-        signature_algorithm="rsa-"+config("MD_ALG"),
-        digest_algorithm=config("MD_ALG"),
+        signature_algorithm="rsa-"+settings.MD_ALG,
+        digest_algorithm=settings.MD_ALG,
         c14n_algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"
     )
     

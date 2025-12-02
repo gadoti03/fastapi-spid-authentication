@@ -43,5 +43,10 @@
 		"organization_name": "Intesi Group S.p.A.",
 		"entity_id": "https://idp.intesigroup.com", 
 		"logo_uri": "/static/img/spid-idp-intesigroupspid.svg"
+	},
+	{
+		"organization_name": "GABIBBO",
+		"entity_id": "https://demo.spid.gov.it", 
+		"logo_uri": "https://www.striscialanotizia.mediaset.it/wp-content/uploads/2022/09/Gabibbo-Striscia-1800x1040.jpg"
 	}
 ]

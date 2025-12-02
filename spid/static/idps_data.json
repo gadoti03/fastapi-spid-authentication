@@ -306,5 +306,30 @@
         "Location": "https://spid.register.it/login/sso"
       }
     ]
+  },
+  "https://demo.spid.gov.it": {
+    "signing_certificate_x509": [
+      "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"
+    ],
+    "single_logout_service": [
+      {
+        "Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+        "Location": "https://demo.spid.gov.it/samlsso"
+      },
+      {
+        "Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+        "Location": "https://demo.spid.gov.it/samlsso"
+      }
+    ],
+    "single_sign_on_service": [
+      {
+        "Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect",
+        "Location": "https://demo.spid.gov.it/samlsso"
+      },
+      {
+        "Binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
+        "Location": "https://demo.spid.gov.it/samlsso"
+      }
+    ]
   }
 }

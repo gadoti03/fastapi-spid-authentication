@@ -1,3 +1,6 @@
+# da runnare IN QUESTA CARTELLA services/ -> risolvi
+# risolvi anche il os.getenv (obiettivo: settings da .env)
+
 import json
 import requests
 

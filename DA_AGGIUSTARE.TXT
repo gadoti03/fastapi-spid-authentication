@@ -1,2 +1,12 @@
 1) aggiungere spid mancanti
     -> la statica che contiene gli entityID va aggionrata (insieme alla lista degli idp)
+
+2) richiesta periodica di metadata spid
+    -> ogni qual volta che scarico i metadata (periodicamente) ne devo anche verificare le firme!
+
+3)  dovrei aggiungere la possibilità di firmare con piu chiavi/certificati
+    in authn_request
+
+4) vedi come gestire l'.env, se con os.getenv o decouple
+
+5) gestisci rotazione certificati

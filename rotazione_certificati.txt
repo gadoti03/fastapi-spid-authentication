@@ -1,0 +1,25 @@
+1️⃣ Prima della scadenza di C1
+
+    Hai C1 attivo.
+
+    Metti C2 nel metadata in anticipo (senza usarlo ancora per firmare).
+
+    In questo periodo firmi ancora con C1, ma l’IdP sa che in futuro ci sarà C2, quindi accetta già firme fatte con C2 quando inizierai a usarlo.
+
+2️⃣ Durante il periodo di transizione
+
+    Quando sei pronto per cambiare, inizi a firmare con C2.
+
+    Nel metadata ci sono entrambi i certificati (C1 e C2), quindi l’IdP accetta sia firme vecchie (C1) sia nuove (C2).
+
+    Questo evita che l’autenticazione si rompa durante la rotazione.
+
+3️⃣ Dopo la scadenza di C1
+
+    Una volta che C1 è scaduto e tutti gli IdP hanno aggiornato il metadata, puoi rimuovere C1.
+
+    A questo punto firmi solo con C2, e il metadata contiene solo C2.
+
+    💡 Regola pratica:
+
+    “Metto il nuovo certificato prima della scadenza del vecchio, firmo con quello attuale, poi passo al nuovo, e infine rimuovo il vecchio.”

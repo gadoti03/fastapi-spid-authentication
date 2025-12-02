@@ -1,11 +1,13 @@
 import textwrap
-from decouple import config
 import xmlsec
-import lxml.etree as ET
 import json
 
-IDPS_FILE = config("IDPS_FILE")
-KEY_SP_FILE = config("KEY_SP_FILE")
+import lxml.etree as ET
+
+from settings import settings
+
+IDPS_FILE = settings.IDPS_FILE
+KEY_SP_FILE = settings.KEY_SP_FILE
 
 
 def verify_saml_signature(xml_str: str) -> bool:

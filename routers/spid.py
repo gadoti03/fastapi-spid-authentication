@@ -2,7 +2,7 @@ import os, json, base64
 import xml.etree.ElementTree as ET
 from fastapi import APIRouter, Request, Depends, Response, HTTPException, Form
 from fastapi.responses import HTMLResponse, Response, FileResponse, RedirectResponse
-from decouple import config
+from settings import settings
 
 from schemas.models import SpidLoginRequest
 
@@ -11,8 +11,7 @@ from spid.acs_handler import verify_saml_signature, extract_spid_attributes
 
 router = APIRouter()
 
-METADATA_FILE = config("METADATA_FILE")
-IDPS_FILE = config("IDPS_FILE")
+METADATA_FILE = settings.METADATA_FILE
 
 @router.get("/metadata", response_class=Response) # response_class=Response: avoid default JSON response
 async def get_metadata():
@@ -22,7 +21,7 @@ async def get_metadata():
         return Response(content="Metadata not found", status_code=404)
     
 @router.post("/login")
-async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data: SpidLoginRequest   
+async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data: SpidLoginRequest    
     relay_state = relay_state or "/" # se è vuoto e stringa vuota da errore -> metti pagina di default
 
     # get idp url
@@ -39,8 +38,6 @@ async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data:
 @router.post("/acs")
 async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/")):
     decoded_xml = base64.b64decode(SAMLResponse)
-
-    # decrypt 
 
     # verify signature
     if not verify_saml_signature(decoded_xml):
