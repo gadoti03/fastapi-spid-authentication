@@ -11,6 +11,7 @@ from lxml import etree
 from signxml import XMLSigner, methods
 
 from settings import settings
+from spid.utils import get_key_and_cert
 
 KEY_SP_FILE = settings.KEY_SP_FILE
 CERT_SP_FILE = settings.CERT_SP_FILE
@@ -43,7 +44,7 @@ def get_idp_url(idp: str) -> str:
     return slo_url
 
 def generate_authn_request(idp_url: str) -> str:
-    sp_entity_id = settings.SP_ENTITY_ID
+    sp_entity_id = settings.ENTITY_ID
     name_qualifier = settings.NAME_QUALIFIER           
     acs_url = settings.ACS_URL
     idp_sso_url = idp_url
@@ -55,29 +56,24 @@ def sign_xml(xml_str: str, reference_id: str) -> str:
     parser = etree.XMLParser(remove_blank_text=True)
     xml_doc = etree.fromstring(xml_str.encode("utf-8"), parser=parser)
 
-    # Leggo chiave privata e certificato
-    # ??? dovrei aggiungere la possibilità di firmare con piu chiavi/certificati
-
-    with open(KEY_SP_FILE, "rb") as f:
-        key_data = f.read()
-    with open(CERT_SP_FILE, "rb") as f:
-        cert_data = f.read()
+    # Load key and cert
+    key_data, cert_data = get_key_and_cert()
     
-    # Creazione firmatore
+    # Creation signer
     signer = XMLSigner(
-        method=methods.enveloped,           # firma enveloped
+        method=methods.enveloped,
         signature_algorithm="rsa-"+settings.MD_ALG,
         digest_algorithm=settings.MD_ALG,
         c14n_algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"
     )
     
-    # Trovo il nodo da firmare tramite ID
+    # Find the node to sign by ID
     node_to_sign = xml_doc.xpath(f"//*[@ID='{reference_id}']")[0]
     
-    # Firma
+    # Sign
     signed_root = signer.sign(node_to_sign, key=key_data, cert=cert_data, reference_uri=f"#{reference_id}")
     
-    # Restituisco XML firmato
+    # Return signed XML
     return etree.tostring(signed_root, pretty_print=True, xml_declaration=True, encoding="UTF-8").decode("utf-8")
 
 def encode_authn_request(xml: str) -> str:

@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     # OTHER SETTINGS
     URL_ROOT: str
 
+    # METADATA SETTINGS
+    CERT_DIR_PATH: str
+    METADATA_PATH: str
+    METADATA_CLEAN_PATH: str
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

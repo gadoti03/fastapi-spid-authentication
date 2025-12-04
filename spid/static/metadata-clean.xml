@@ -1,0 +1,28 @@
+<md:EntityDescriptor entityID="https://example-website.it" ID="_uniqueID" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:spid="https://spid.gov.it/saml-extensions" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+  <md:SPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol" AuthnRequestsSigned="true" WantAssertionsSigned="true">
+    <md:SingleLogoutService Location="https://example-website.it/logout" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"/>
+    <md:AssertionConsumerService index="0" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://example-website.it/acs" isDefault="true"/>
+    <md:AttributeConsumingService index="0">
+      <md:ServiceName xml:lang="it">Servizi online</md:ServiceName>
+      <md:ServiceDescription xml:lang="it">Servizi online</md:ServiceDescription>
+      <md:RequestedAttribute Name="fiscalNumber" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic" FriendlyName="Codice Fiscale" isRequired="true"/>
+      <md:RequestedAttribute Name="domicileMunicipality" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic" FriendlyName="Residenza" isRequired="true"/>
+    </md:AttributeConsumingService>
+  </md:SPSSODescriptor>
+  <md:Organization>
+    <md:OrganizationName xml:lang="it">Comune di Roma</md:OrganizationName>
+    <md:OrganizationDisplayName xml:lang="it">PA:IT-c_h501</md:OrganizationDisplayName>
+    <md:OrganizationURL xml:lang="it">https://example-website.it</md:OrganizationURL>
+  </md:Organization>
+  <md:ContactPerson contactType="other">
+    <md:Extensions>
+      <spid:IPACode>c_h501</spid:IPACode>
+      <spid:VATNumber>IT12345678901</spid:VATNumber>
+      <spid:FiscalCode>XYZABCAAMGGJ000W</spid:FiscalCode>
+      <spid:Public/>
+    </md:Extensions>
+    <md:Company>Comune di Roma</md:Company>
+    <md:EmailAddress>tech-info@example.org</md:EmailAddress>
+    <md:TelephoneNumber>+398472345634785</md:TelephoneNumber>
+  </md:ContactPerson>
+</md:EntityDescriptor>
