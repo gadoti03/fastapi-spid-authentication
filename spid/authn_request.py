@@ -77,7 +77,6 @@ def sign_xml(xml_str: str, reference_id: str) -> str:
     return etree.tostring(signed_root, pretty_print=True, xml_declaration=True, encoding="UTF-8").decode("utf-8")
 
 def encode_authn_request(xml: str) -> str:
-    print("Original AuthnRequest XML:", xml)
     deflated = zlib.compress(xml.encode())[2:-4]  # DEFLATE without header
     b64_authn = base64.b64encode(deflated).decode()
     return b64_authn

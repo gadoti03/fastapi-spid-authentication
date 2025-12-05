@@ -24,6 +24,8 @@ async def get_metadata():
 async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data: SpidLoginRequest    
     relay_state = relay_state or "/" # se è vuoto e stringa vuota da errore -> metti pagina di default
 
+    print("IDP selezionato:", idp)
+    
     # get idp url
     idp_url = get_idp_url(idp)
     # generate the AuthnRequest XML
