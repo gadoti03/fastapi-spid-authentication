@@ -57,7 +57,7 @@ def sign_xml(xml_str: str, reference_id: str) -> str:
     xml_doc = etree.fromstring(xml_str.encode("utf-8"), parser=parser)
 
     # Load key and cert
-    key_data, cert_data = get_key_and_cert()
+    cert_data, key_data = get_key_and_cert()
     
     # Creation signer
     signer = XMLSigner(
@@ -72,11 +72,12 @@ def sign_xml(xml_str: str, reference_id: str) -> str:
     
     # Sign
     signed_root = signer.sign(node_to_sign, key=key_data, cert=cert_data, reference_uri=f"#{reference_id}")
-    
+
     # Return signed XML
     return etree.tostring(signed_root, pretty_print=True, xml_declaration=True, encoding="UTF-8").decode("utf-8")
 
 def encode_authn_request(xml: str) -> str:
+    print("Original AuthnRequest XML:", xml)
     deflated = zlib.compress(xml.encode())[2:-4]  # DEFLATE without header
     b64_authn = base64.b64encode(deflated).decode()
     return b64_authn

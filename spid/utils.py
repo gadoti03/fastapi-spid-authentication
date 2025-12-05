@@ -12,12 +12,12 @@ def get_key_and_cert():
     - If OLD does not exist → use NEW
     """
 
-    NEW_CERT_PATH = os.path.join(settings.CERT_DIR_NEW, "crt.pem")
-    NEW_KEY_PATH  = os.path.join(settings.CERT_DIR_NEW, "key.pem")
+    NEW_CERT_PATH = os.path.join(settings.CERT_DIR_PATH, "new/crt.pem")
+    NEW_KEY_PATH  = os.path.join(settings.CERT_DIR_PATH, "new/key.pem")
 
-    OLD_CERT_PATH = os.path.join(settings.CERT_DIR_OLD, "crt.pem")
-    OLD_KEY_PATH  = os.path.join(settings.CERT_DIR_OLD, "key.pem")
-
+    OLD_CERT_PATH = os.path.join(settings.CERT_DIR_PATH, "old/crt.pem")
+    OLD_KEY_PATH  = os.path.join(settings.CERT_DIR_PATH, "old/key.pem")
+    
     new_exists = os.path.isfile(NEW_CERT_PATH) and os.path.isfile(NEW_KEY_PATH)
     old_exists = os.path.isfile(OLD_CERT_PATH) and os.path.isfile(OLD_KEY_PATH)
 
