@@ -1,12 +1,11 @@
+from settings import settings
+
 from fastapi.responses import HTMLResponse
 
 import json
 import uuid
 from datetime import datetime, timezone
-
 from lxml import etree
-
-from settings import settings
 
 from spid.exceptions import SpidConfigError
 

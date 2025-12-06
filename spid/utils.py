@@ -1,12 +1,12 @@
-import base64
 from settings import settings
 
 import os
+import base64
 from lxml import etree
 import xmlsec
 from signxml import XMLSigner, methods
 
-from spid.exceptions import SpidSignatureError, SpidConfigError 
+from spid.exceptions import SpidSignatureError, SpidConfigError, SpidValidationError
 
 def get_key_and_cert():
 
@@ -134,17 +134,18 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str, after_tag: str = None)
     
     return etree.tostring(signed_root, pretty_print=False, xml_declaration=False, encoding="UTF-8").decode("utf-8")
 
-def verify_xml_signature(xml_str: str, cert_path: str, cert_data: str) -> bool:
+def verify_xml_signature(xml_str: str, cert_path: str = None, cert_data: str = None) -> bool:
 
     if (not cert_path and not cert_data) or (cert_path and cert_data):
         raise Exception("Provide either cert_path or cert_data, not both or neither.")
     
-    try:
-        # Load cert
-        with open(cert_path, "r") as fcert:
-            cert_data = fcert.read()
-    except Exception as e:
-        raise SpidConfigError(f"Error loading certificate: {e}")
+    if cert_path:
+        try:
+            # Load cert
+            with open(cert_path, "r") as fcert:
+                cert_data = fcert.read()
+        except Exception as e:
+            raise SpidConfigError(f"Error loading certificate: {e}")
 
     # Parse XML
     # parser = etree.XMLParser(remove_blank_text=True)
@@ -166,8 +167,7 @@ def verify_xml_signature(xml_str: str, cert_path: str, cert_data: str) -> bool:
         ctx.verify(signature_node)
         return True
     except xmlsec.Error as e:
-        print(f"Signature verification failed: {e}")
-        return False
+        raise SpidValidationError(f"Signature verification failed: {e}")
     
 def encode_b64(xml: str) -> str:
 

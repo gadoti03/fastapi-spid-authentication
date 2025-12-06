@@ -1,15 +1,16 @@
-import os, base64
-import xml.etree.ElementTree as ET
+from settings import settings
+
 from fastapi import APIRouter, Request, Depends, Response, HTTPException, Form
 from fastapi.responses import Response, FileResponse, RedirectResponse
-from settings import settings
+
+import os, base64
+import xml.etree.ElementTree as ET
 
 from schemas.models import SpidLoginRequest
 from spid.exceptions import SpidConfigError, SpidSignatureError
-
 from spid.authn_request import generate_authn_request, get_idp_url, render_saml_form
 from spid.acs_handler import verify_saml_signature, extract_spid_attributes
-from spid.utils import get_key_and_cert, get_key_path, get_cert_path, sign_xml, encode_b64
+from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64
 
 router = APIRouter()
 
@@ -51,11 +52,12 @@ async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/"
     
     decoded_xml = base64.b64decode(SAMLResponse)
 
-    # verify Assertion node -> to undestand if the user is authenticated
-    # TODO: decrypt Assertion if encrypted
-    # if not authenticated:
-    #     raise HTTPException(status_code=401, detail="User not authenticated")
-    #     maybe the Form is not defined -> check
+    # TODO:
+    # 1) IMP: decrypted
+    # 2) login solo per gli autenticati?
+    # 3) serve l'ID?
+    # 4) gestione sessione
+
 
     # verify signature
     if not verify_saml_signature(decoded_xml):

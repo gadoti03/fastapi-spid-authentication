@@ -1,17 +1,17 @@
 # DI COSA HO BISOGNO???
 
-1) PROCESSO CHE OGNI GIORNO ( O SEEIMANA, MESE ) MI AGGIORNA I METADATA
-QUINDI DI OGNI METADATA MI VA A RACCOGLIERE LE INFORMAZIONI CHE FINISCONO TUTTE IN UN FILE JSON
+1) nella rotazione usa le funzioni di util
 
-nel metadata dell'sp c'è (OK)
-1) certificato pubblico signing 
-2) encription (se richiediamo che l'assertion venga firmata) firmiamo la authnrequest con la key.pem e mando quando ricevo la response: verifico che sia buona (la verifico con la lista dei suoi certificati) eventualmente decifro (con key.pem) finito authn
-
-2) AGGIUNGI POSSIBILITÀ DI, DATO IL METTADATA (SENZA CERTIFICATI E FIRME)
-    1) aggiungere certificato
-    2) firmarlo
+2) gescisci asc 
+    - decript
+    - sessioni
 
 4) fai out
 
 5) irrobustisci tutto -> analizza riga x riga
     (aggiungi anche il fatto che si decifra se ho messo true)
+
+FINE)   PROCESSO CHE OGNI GIORNO ( O SEEIMANA, MESE ) MI AGGIORNA I METADATA
+QUINDI DI OGNI METADATA MI VA A RACCOGLIERE LE INFORMAZIONI CHE FINISCONO TUTTE IN UN FILE JSON
+
+        PROCESSO CHE GESTISCE ROTAZIONE
