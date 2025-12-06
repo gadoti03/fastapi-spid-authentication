@@ -1,5 +1,7 @@
 # DI COSA HO BISOGNO???
 
+0) verifica quando necessito altre verifiche
+
 1) nella rotazione usa le funzioni di util
 
 2) gescisci asc 
