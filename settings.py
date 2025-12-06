@@ -7,8 +7,6 @@ class Settings(BaseSettings):
     # PATH SETTINGS
     IDPS_FILE: str
     METADATA_FILE: str
-    CERT_SP_FILE: str
-    KEY_SP_FILE: str
 
     # SPID SETTINGS
     COMMON_NAME: str

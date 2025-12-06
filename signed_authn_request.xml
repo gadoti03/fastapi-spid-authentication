@@ -1,22 +1,4 @@
-<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_2d94c4a5-f766-4342-8d10-57743ac5a9b4" Version="2.0" IssueInstant="2025-12-05T17:49:51Z" Destination="https://demo.spid.gov.it/samlsso" AssertionConsumerServiceURL="https://openairish-apolonia-unbrothered.ngrok-free.dev/spid/acs" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" AttributeConsumingServiceIndex="0">
-  <saml:Issuer NameQualifier="https://openairish-apolonia-unbrothered.ngrok-free.dev" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://openairish-apolonia-unbrothered.ngrok-free.dev</saml:Issuer>
-  <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
-    <ds:SignedInfo>
-      <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-      <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"/>
-      <ds:Reference URI="#_2d94c4a5-f766-4342-8d10-57743ac5a9b4">
-        <ds:Transforms>
-          <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
-          <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
-        </ds:Transforms>
-        <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/>
-        <ds:DigestValue>ImwnQyoD+PQHnSzW/DDKEdOeMQ8XHyGxCL9nckJL0VskX//oPewbKG4wCoJud4G/6j6MKtQN+5BRQYnC+GLXeA==</ds:DigestValue>
-      </ds:Reference>
-    </ds:SignedInfo>
-    <ds:SignatureValue>GiLoyVOi0Lq7O2FmYnDM5Y65oBh92I78fX47pxcPp5l6vzDHz6lXG9Z4IJfRkGmkd5uvkNfZmFLYsndMJpdLFSrkiP2z0SfvBrXQkfEnkpevSTJXVUNc8lFj5K24gk37GMFo06OheBXG2VSxnztYeSc/nEYOKcNIzPVTmyeAI7j0YlmUYMWdRjYMWbMELxb2oIhgdzl5Z3A4jCg37Shr1b4Hd0nlgPDzr2Td9v9cvD8NS6OiqzVYB7z7Mf2PZ/5IcogqwghqW9kc2Ge5anvCcHJnFFXV5zLD9f5IWR+s9Z792LPUcIT+s6R52Uh+bRk75hAO/gBy50zVR2VWYdXWlW00OlPQubN/CYZTA6pKRMFBHqIqAVMxjnULUL52llND/DiGaZbkeSAhTCDclSl7D40XZA8ujhokHfoUfx+zE8v0jZNoFtBtqNrwDRf7bsfnFRzSkyrL9tOpwnnuXRz+UZDBZTlt68IFrBN/pHYEG0CYOiW7+khCJJ6BSOyp3kX1</ds:SignatureValue>
-    <ds:KeyInfo>
-      <ds:X509Data>
-        <ds:X509Certificate>MIIFNjCCA56gAwIBAgIUdN07CTqbsjqZzDRxOvOYrVji0EYwDQYJKoZIhvcNAQEN
+<samlp:AuthnRequest xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_ba4d3787-4a11-4203-9c83-1da45bc35ced" Version="2.0" IssueInstant="2025-12-06T00:23:52Z" Destination="https://demo.spid.gov.it/samlsso" AssertionConsumerServiceURL="https://openairish-apolonia-unbrothered.ngrok-free.dev/spid/acs" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" AttributeConsumingServiceIndex="0"><saml:Issuer NameQualifier="https://openairish-apolonia-unbrothered.ngrok-free.dev" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://openairish-apolonia-unbrothered.ngrok-free.dev</saml:Issuer><ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:SignedInfo><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/><ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"/><ds:Reference URI="#_ba4d3787-4a11-4203-9c83-1da45bc35ced"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/><ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/><ds:DigestValue>BoBTWdS1BERLvm+sb8holwPcMs07AqqRMJGgJRZ8C2Xt7CxAI4Swp/NNpEw52cFAWlNlVrFmFJ0p+ZO+ESomGw==</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>NRTV6eCDS2rmOwke16ej2iuTg2C4CdKStLOvoz+0a8CYEj9r4gOC8jplAHTYdchqNvtVBfx+WrkLHJ+fTtD2Bje/OGi93Ez6ZJbq/l+PvIh3xYPZivxGIlv9g07ZY5u3VhYfQlLB05hLRoZ0YszABjDRmpkoIkbZUh311Gi8dV49Lz5I/VtleRimae63f5OU5w/RJv01V5fxkgCIAJUgS2kG6gkFbNGSTxEkKJOpDDfCYvMGnFROScIjobqaYl9pHs2jzX+X0Uvl/UOyxXWzQQ/1Xn5jCryU34ivW1h0gupW2qO9rsyeAu4DiMtbMf2pce0wjVWFPJWK6OZEQkPLgiVJJ99vNet5TRlpHTz6mZzHaNxY0rsDIAyYmgi3m6f92tHe9C4p2Yw9JBhXJd5KO+/c/2lj121yX1MGvd0QTdnttpH94T+n4g0VA7bDqPiY7COmOmqlkDwMy0svd+ryipxekSqbj+hz+LRKjGA535ooNy7Bxzbzx5sq9jxBW5qa</ds:SignatureValue><ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIFNjCCA56gAwIBAgIUdN07CTqbsjqZzDRxOvOYrVji0EYwDQYJKoZIhvcNAQEN
 BQAwgYoxFzAVBgNVBAMMDkNvbXVuZSBkaSBSb21hMQswCQYDVQQGEwJJVDENMAsG
 A1UEBwwEUm9tYTEVMBMGA1UEYQwMUEE6SVQtY19oNTAxMRcwFQYDVQQKDA5Db211
 bmUgZGkgUm9tYTEjMCEGA1UEUwwaaHR0cHM6Ly9leGFtcGxlLXdlYnNpdGUuaXQw
@@ -44,12 +26,4 @@ bT8U1AxLoCF6Il2VPhgO7/eXUqlg364HNtqsB2/E9fuMgYihFpUnnxmNWeSs8+kx
 dmlXBlzpftkNN9ENgtHR2LZ61aVVT9QD5Jr2U63nqsZpPOHZs4A8g4SIW5+hrULY
 nvBXqeQI1Xws0oM91Yempzx0zFxZwRNOmJ0BgyYiH+azwqI9NBLYE8uaZb28LDvt
 U94owGDvgrtPabuMbpgnq2XP+k887OetJogZrYE8H7kDlpdKbxdppfpn
-</ds:X509Certificate>
-      </ds:X509Data>
-    </ds:KeyInfo>
-  </ds:Signature>
-  <samlp:NameIDPolicy Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"/>
-  <samlp:RequestedAuthnContext Comparison="minimum">
-    <saml:AuthnContextClassRef>https://www.spid.gov.it/SpidL1</saml:AuthnContextClassRef>
-  </samlp:RequestedAuthnContext>
-</samlp:AuthnRequest>
+</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature><samlp:NameIDPolicy Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"/><samlp:RequestedAuthnContext Comparison="minimum"><saml:AuthnContextClassRef>https://www.spid.gov.it/SpidL1</saml:AuthnContextClassRef></samlp:RequestedAuthnContext></samlp:AuthnRequest>

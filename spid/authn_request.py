@@ -13,9 +13,6 @@ from signxml import XMLSigner, methods
 from settings import settings
 from spid.utils import get_key_and_cert
 
-KEY_SP_FILE = settings.KEY_SP_FILE
-CERT_SP_FILE = settings.CERT_SP_FILE
-
 def get_idp_url(idp: str) -> str:
     IDPS_FILE = settings.IDPS_FILE
     # Load map IDP → URL
@@ -94,7 +91,7 @@ def sign_xml(xml_str: str, reference_id: str) -> str:
     # Serialize XML
     xml_bytes = etree.tostring(
         signed_root,
-        pretty_print=True,      # IMPORTANTISSIMO: non modificarlo
+        pretty_print=False,      # IMPORTANTISSIMO: non modificarlo
         xml_declaration=False,
         encoding="UTF-8"
     )
@@ -106,8 +103,9 @@ def sign_xml(xml_str: str, reference_id: str) -> str:
     return etree.tostring(signed_root, pretty_print=False, xml_declaration=False, encoding="UTF-8").decode("utf-8")
 
 def encode_authn_request(xml: str) -> str:
-    deflated = zlib.compress(xml.encode())[2:-4]  # DEFLATE without header
-    b64_authn = base64.b64encode(deflated).decode()
+    xml_bytes = xml.encode("utf-8")
+
+    b64_authn = base64.b64encode(xml_bytes).decode()
     return b64_authn
 
 def render_saml_form(idp_url: str, saml_request: str, relay_state: str) -> str:

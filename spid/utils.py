@@ -37,3 +37,17 @@ def get_key_and_cert():
 
     # Corrupted state: OLD partially present
     raise Exception("Invalid rotation state: OLD certificate directory is incomplete.")
+
+def get_key_path():
+    OLD_KEY_PATH  = os.path.join(settings.CERT_DIR_PATH, "old/key.pem")
+    NEW_KEY_PATH  = os.path.join(settings.CERT_DIR_PATH, "new/key.pem")
+
+    old_exists = os.path.isfile(OLD_KEY_PATH)
+    new_exists = os.path.isfile(NEW_KEY_PATH)
+
+    if old_exists:
+        return OLD_KEY_PATH
+    elif new_exists:
+        return NEW_KEY_PATH
+    else:
+        raise Exception("No SP private key found in OLD or NEW directories.")

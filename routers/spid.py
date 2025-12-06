@@ -39,7 +39,14 @@ async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data:
 
 @router.post("/acs")
 async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/")):
+    
     decoded_xml = base64.b64decode(SAMLResponse)
+
+    # verify Assertion node -> to undestand if the user is authenticated
+    # TODO: decrypt Assertion if encrypted
+    # if not authenticated:
+    #     raise HTTPException(status_code=401, detail="User not authenticated")
+    #     maybe the Form is not defined -> check
 
     # verify signature
     if not verify_saml_signature(decoded_xml):
