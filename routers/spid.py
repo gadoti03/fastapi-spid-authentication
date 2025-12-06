@@ -1,15 +1,15 @@
-import os, json, base64
+import os, base64
 import xml.etree.ElementTree as ET
 from fastapi import APIRouter, Request, Depends, Response, HTTPException, Form
-from fastapi.responses import HTMLResponse, Response, FileResponse, RedirectResponse
+from fastapi.responses import Response, FileResponse, RedirectResponse
 from settings import settings
 
 from schemas.models import SpidLoginRequest
 from spid.exceptions import SpidConfigError, SpidSignatureError
 
-from spid.authn_request import generate_authn_request, sign_xml, encode_authn_request, get_idp_url, render_saml_form
+from spid.authn_request import generate_authn_request, get_idp_url, render_saml_form
 from spid.acs_handler import verify_saml_signature, extract_spid_attributes
-from spid.utils import get_key_and_cert, get_key_path, sign_xml, encode_b64
+from spid.utils import get_key_and_cert, get_key_path, get_cert_path, sign_xml, encode_b64
 
 router = APIRouter()
 
@@ -31,8 +31,9 @@ async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data:
         idp_url = get_idp_url(idp)
         # generate the AuthnRequest XML
         xml, request_id = generate_authn_request(idp_url)
+        #   -> maybe request_is should be saved
         # sign the AuthnRequest XML 
-        xml = sign_xml(sml_str = xml, key_path = get_key_path(), cert_path = get_key_path().replace("key.pem", "crt.pem"))
+        xml = sign_xml(xml_str = xml, key_path = get_key_path(), cert_path = get_cert_path(), after_tag="Issuer")
         # base64 encode the signed AuthnRequest XML
         saml_request = encode_b64(xml)
         # render HTML con form auto-submit

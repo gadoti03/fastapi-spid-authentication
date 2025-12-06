@@ -8,7 +8,7 @@ from lxml import etree
 
 from settings import settings
 
-from exceptions import SpidConfigError
+from spid.exceptions import SpidConfigError
 
 def get_idp_url(idp: str) -> str:
 

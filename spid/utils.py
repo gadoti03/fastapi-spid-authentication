@@ -72,7 +72,7 @@ def get_cert_path():
     else:
         raise SpidConfigError("No SP cert key found in OLD or NEW directories.")
     
-def sign_xml(xml_str: str, key_path: str, cert_path: str) -> str:
+def sign_xml(xml_str: str, key_path: str, cert_path: str, after_tag: str = None) -> str:
 
     try:
         # Load key
@@ -91,6 +91,11 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str) -> str:
     # Register ID attributes
     xmlsec.tree.add_ids(root, ["ID"])
 
+    # Find the node to sign by ID
+    id_nodes = root.xpath("//*[@ID]")
+    if not id_nodes:
+        raise SpidConfigError("No node with ID attribute found to sign.")    
+
     # Create signer
     signer = XMLSigner(
         method=methods.enveloped,
@@ -99,11 +104,6 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str) -> str:
         c14n_algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"
     )
 
-    # Find the node to sign by ID
-    id_nodes = root.xpath("//*[@ID]")
-    if not id_nodes:
-        raise SpidConfigError("No node with ID attribute found to sign.")    
-    
     id_node = id_nodes[0]
     reference_id = id_node.get("ID")
     node_to_sign = root.xpath(f"//*[@ID='{reference_id}']")[0]
@@ -119,6 +119,19 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str) -> str:
     except Exception as e:
         raise SpidSignatureError(f"Error signing XML: {e}")
 
+    # --- Move <ds:Signature> after a specific child if requested ---
+    if after_tag:
+        signature = signed_root.find(".//{http://www.w3.org/2000/09/xmldsig#}Signature")
+        signed_root.remove(signature)
+
+        target_index = None
+        for i, child in enumerate(node_to_sign):
+            if child.tag.endswith(after_tag):
+                target_index = i
+                break
+        if target_index is not None:
+            signed_root.insert(target_index + 1, signature)
+    
     return etree.tostring(signed_root, pretty_print=False, xml_declaration=False, encoding="UTF-8").decode("utf-8")
 
 def verify_xml_signature(xml_str: str, cert_path: str, cert_data: str) -> bool:
