@@ -10,6 +10,7 @@ from spid.utils import get_key_path
 IDPS_FILE = settings.IDPS_FILE
 
 def verify_saml_signature(xml_str: str) -> bool:
+
     root = etree.fromstring(xml_str)
     xmlsec.tree.add_ids(root, ["ID"])
 
@@ -75,6 +76,7 @@ def verify_saml_signature(xml_str: str) -> bool:
     return True
 
 def extract_spid_attributes(saml_response_b64: str) -> dict:
+
     root = etree.fromstring(saml_response_b64)
 
     # Namespace SAML
@@ -98,6 +100,7 @@ def extract_spid_attributes(saml_response_b64: str) -> dict:
     return attributes
 
 def decrypt_assertion(root, sp_private_key_path: str):
+
     # Trova l'EncryptedAssertion
     enc_node = root.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}EncryptedAssertion")
     if enc_node is None:
@@ -111,6 +114,7 @@ def decrypt_assertion(root, sp_private_key_path: str):
     return decrypted_node
 
 def base64_to_pem(b64_cert: str) -> str:
+    
     """Converte un certificato Base64 in formato PEM."""
     pem = "-----BEGIN CERTIFICATE-----\n"
     pem += "\n".join([b64_cert[i:i+64] for i in range(0, len(b64_cert), 64)])

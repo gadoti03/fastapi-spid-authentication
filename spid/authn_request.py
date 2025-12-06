@@ -1,133 +1,63 @@
-from fastapi import HTTPException
 from fastapi.responses import HTMLResponse
 
-import base64
 import json
-import zlib
 import uuid
 from datetime import datetime, timezone
 
 from lxml import etree
-from signxml import XMLSigner, methods
 
 from settings import settings
-from spid.utils import get_key_and_cert
+
+from exceptions import SpidConfigError
 
 def get_idp_url(idp: str) -> str:
+
     IDPS_FILE = settings.IDPS_FILE
-    # Load map IDP → URL
-    with open(IDPS_FILE, "r") as f:
-        idps_data = json.load(f)
+
+    try:
+        # Load map IDP → URL
+        with open(IDPS_FILE, "r") as f:
+            idps_data = json.load(f)
+    except Exception as e:
+        raise SpidConfigError(f"Error loading IdPs file: {e}")
 
     # Check IdP existence
     if idp not in idps_data:
-        raise HTTPException(400, "Invalid IdP")
+        raise SpidConfigError(f"Unknown IdP: {idp}")
     
     # Get SSO URL
     idp_entry = idps_data.get(idp)
     if not idp_entry:
-        raise ValueError(f"IdP {idp} not found")
+        raise SpidConfigError(f"IdP {idp} not found")
     
     sso_list = idp_entry.get("single_sign_on_service", [])
     if not sso_list:
-        raise ValueError(f"No SingleSignOnService defined for IdP {idp}")
+        raise SpidConfigError(f"No SingleSignOnService defined for IdP {idp}")
         
-    # Find HTTP-Redirect binding
+    # Find HTTP-Redirect binding 
     slo_post = next((slo for slo in sso_list if slo.get("Binding") == "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"), None)
     if slo_post is None:
-        raise ValueError(f"No HTTP-POST SingleLogoutService found for IdP {idp}")
+        raise SpidConfigError(f"No HTTP-POST SingleLogoutService found for IdP {idp}")
 
     slo_url = slo_post["Location"]
+    if not slo_url:
+        raise SpidConfigError(f"No Location found for HTTP-POST SingleLogoutService for IdP {idp}")
+    
     return slo_url
 
 def generate_authn_request(idp_url: str) -> str:
+
     sp_entity_id = settings.ENTITY_ID
     name_qualifier = settings.NAME_QUALIFIER           
     acs_url = settings.ACS_URL
     idp_sso_url = idp_url
-    xml = generate_authn_request_xml(sp_entity_id, name_qualifier, acs_url, idp_sso_url)
-    return xml
-
-def sign_xml(xml_str: str, reference_id: str) -> str:
-    # Parsing XML
-    parser = etree.XMLParser(remove_blank_text=True)
-    xml_doc = etree.fromstring(xml_str.encode("utf-8"), parser=parser)
-
-    # Load key and cert
-    cert_data, key_data = get_key_and_cert()
-    
-    # Creation signer
-    signer = XMLSigner(
-        method=methods.enveloped,
-        signature_algorithm="rsa-" + settings.MD_ALG,
-        digest_algorithm=settings.MD_ALG,
-        c14n_algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"
-    )
-    
-    # Find the node to sign by ID (AuthnRequest)
-    node_to_sign = xml_doc.xpath(f"//*[@ID='{reference_id}']")[0]
-    
-    # Sign the node
-    signed_root = signer.sign(
-        node_to_sign,
-        key=key_data,
-        cert=cert_data,
-        reference_uri=f"#{reference_id}"
-    )
-
-    # ------------------------------
-    # Move Signature immediately after Issuer
-    # ------------------------------
-    signature = signed_root.find(".//{http://www.w3.org/2000/09/xmldsig#}Signature")
-    issuer = signed_root.find("{urn:oasis:names:tc:SAML:2.0:assertion}Issuer")
-
-    if signature is not None and issuer is not None:
-        # remove from current position
-        signed_root.remove(signature)
-        # insert right after Issuer
-        issuer_index = list(signed_root).index(issuer)
-        signed_root.insert(issuer_index + 1, signature)
-
-    # Serialize XML
-    xml_bytes = etree.tostring(
-        signed_root,
-        pretty_print=False,      # IMPORTANTISSIMO: non modificarlo
-        xml_declaration=False,
-        encoding="UTF-8"
-    )
-
-    with open("signed_authn_request.xml", "wb") as f:
-        f.write(xml_bytes)
-
-    # Return signed XML as string
-    return etree.tostring(signed_root, pretty_print=False, xml_declaration=False, encoding="UTF-8").decode("utf-8")
-
-def encode_authn_request(xml: str) -> str:
-    xml_bytes = xml.encode("utf-8")
-
-    b64_authn = base64.b64encode(xml_bytes).decode()
-    return b64_authn
-
-def render_saml_form(idp_url: str, saml_request: str, relay_state: str) -> str:
-    html_form = f"""
-    <html>
-        <body onload="document.forms[0].submit()">
-            <form method="POST" action="{idp_url}">
-                <input type="hidden" name="SAMLRequest" value="{saml_request}" />
-                <input type="hidden" name="RelayState" value="{relay_state}" />
-                <noscript>
-                    <p>JavaScript is disabled. Click the button below to proceed.</p>
-                    <input type="submit" value="Continue" />
-                </noscript>
-            </form>
-        </body>
-    </html>
-    """
-    return HTMLResponse(content=html_form)
+    xml, request_id = generate_authn_request_xml(sp_entity_id, name_qualifier, acs_url, idp_sso_url)
+    return xml, request_id
 
 def generate_authn_request_xml(sp_entity_id: str, name_qualifier: str, acs_url: str, idp_sso_url: str) -> str:
-    # ID univoco e timestamp
-    request_id = "_" + str(uuid.uuid4()) # lo devo salvare in qualche db?
+ 
+    # ID and timestamp
+    request_id = "_" + str(uuid.uuid4())
     issue_instant = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")    
     
     # Namespace
@@ -146,7 +76,7 @@ def generate_authn_request_xml(sp_entity_id: str, name_qualifier: str, acs_url: 
                                 Version="2.0",
                                 IssueInstant=issue_instant,
                                 Destination=idp_sso_url,
-                                # ForceAuthn="true",
+                                # ForceAuthn="true",   # for SPID 2,3
                                 AssertionConsumerServiceURL=acs_url,
                                 ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
                                 AttributeConsumingServiceIndex="0"
@@ -157,8 +87,6 @@ def generate_authn_request_xml(sp_entity_id: str, name_qualifier: str, acs_url: 
                               NameQualifier=name_qualifier,
                               Format=format_value)
     issuer.text = sp_entity_id
-
-    # QUA CI VA LA FIRMA XML
     
     # NameIDPolicy
     nameid_policy = etree.SubElement(authn_request, "{urn:oasis:names:tc:SAML:2.0:protocol}NameIDPolicy",
@@ -172,5 +100,23 @@ def generate_authn_request_xml(sp_entity_id: str, name_qualifier: str, acs_url: 
     authn_context_class_ref.text = "https://www.spid.gov.it/SpidL1"     # Livello di autenticazione minimo richiesto
     
     # Serialization XML
-    xml_bytes = etree.tostring(authn_request, pretty_print=True, xml_declaration=False, encoding="UTF-8")
+    xml_bytes = etree.tostring(authn_request, pretty_print=False, xml_declaration=False, encoding="UTF-8")
     return xml_bytes.decode("utf-8"), request_id
+
+def render_saml_form(idp_url: str, saml_request: str, relay_state: str) -> str:
+
+    html_form = f"""
+    <html>
+        <body onload="document.forms[0].submit()">
+            <form method="POST" action="{idp_url}">
+                <input type="hidden" name="SAMLRequest" value="{saml_request}" />
+                <input type="hidden" name="RelayState" value="{relay_state}" />
+                <noscript>
+                    <p>JavaScript is disabled. Click the button below to proceed.</p>
+                    <input type="submit" value="Continue" />
+                </noscript>
+            </form>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_form)

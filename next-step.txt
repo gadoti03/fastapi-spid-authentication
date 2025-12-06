@@ -11,9 +11,6 @@ nel metadata dell'sp c'è (OK)
     1) aggiungere certificato
     2) firmarlo
 
-3) appena funziona l'authn, prima di fare l'out
-    aggiungi possibilità di firmare con piu certificati 
-
 4) fai out
 
 5) irrobustisci tutto -> analizza riga x riga

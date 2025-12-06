@@ -5,9 +5,11 @@ from fastapi.responses import HTMLResponse, Response, FileResponse, RedirectResp
 from settings import settings
 
 from schemas.models import SpidLoginRequest
+from spid.exceptions import SpidConfigError, SpidSignatureError
 
 from spid.authn_request import generate_authn_request, sign_xml, encode_authn_request, get_idp_url, render_saml_form
 from spid.acs_handler import verify_saml_signature, extract_spid_attributes
+from spid.utils import get_key_and_cert, get_key_path, sign_xml, encode_b64
 
 router = APIRouter()
 
@@ -18,24 +20,30 @@ async def get_metadata():
     if os.path.exists(METADATA_FILE):
         return FileResponse(METADATA_FILE, media_type="application/xml")
     else:
-        return Response(content="Metadata not found", status_code=404)
+        raise HTTPException(status_code=404, detail="Metadata not found")
     
 @router.post("/login")
 async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data: SpidLoginRequest    
     relay_state = relay_state or "/" # se è vuoto e stringa vuota da errore -> metti pagina di default
-
-    print("IDP selezionato:", idp)
     
-    # get idp url
-    idp_url = get_idp_url(idp)
-    # generate the AuthnRequest XML
-    xml, request_id = generate_authn_request(idp_url)
-    # sign the AuthnRequest XML 
-    xml = sign_xml(xml, request_id)
-    # base64 encode the signed AuthnRequest XML
-    saml_request = encode_authn_request(xml)
-    # render HTML con form auto-submit
-    return render_saml_form(idp_url, saml_request, relay_state)
+    try:
+        # get idp url
+        idp_url = get_idp_url(idp)
+        # generate the AuthnRequest XML
+        xml, request_id = generate_authn_request(idp_url)
+        # sign the AuthnRequest XML 
+        xml = sign_xml(sml_str = xml, key_path = get_key_path(), cert_path = get_key_path().replace("key.pem", "crt.pem"))
+        # base64 encode the signed AuthnRequest XML
+        saml_request = encode_b64(xml)
+        # render HTML con form auto-submit
+        return render_saml_form(idp_url, saml_request, relay_state)
+    
+    except SpidConfigError as e:
+        raise HTTPException(status_code=500, detail=f"SPID Configuration Error: {e}")
+    except SpidSignatureError as e:
+        raise HTTPException(status_code=500, detail=f"SPID Signature Error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
 @router.post("/acs")
 async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/")):
