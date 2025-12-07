@@ -1,6 +1,6 @@
 from settings import settings
 
-from fastapi import APIRouter, Request, Depends, Response, HTTPException, Form
+from fastapi import APIRouter, Request, Query, Depends, Response, HTTPException, Form
 from fastapi.responses import Response, FileResponse, RedirectResponse
 
 import os, base64
@@ -92,16 +92,19 @@ async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/"
     
     return RedirectResponse(url=relayState)
 
-@router.post("/logout")
-async def spid_logout_request(request: Request):
+@router.get("/logout")
+async def spid_logout_request(session: str = Query(...)):
     
     relay_state = "/"
     ################################
     # LETTURA NELLA PROPRIA SESSIONE
     ################################
 
+    '''
     with open("session.txt", "r") as f:
         session = f.read()
+    '''
+
     url_slo = "https://demo.spid.gov.it/samlsso"
     idp_name_qualifier = "https://demo.spid.gov.it"
     ################################
@@ -120,11 +123,20 @@ async def spid_logout_request(request: Request):
 
 
 
-@router.post("/slo")  #
-async def spid_slo(request: Request):
+@router.get("/slo")
+async def spid_slo(SAMLResponse: str = Query(...), relayState: str = Form("/")):
+    # ricevo 4 campi
+    # devo capire se tutti inviano 4 campi
     """
     Endpoint che riceve la LogoutResponse dall'IdP SPID.
     """
+
+    decoded_xml = base64.b64decode(SAMLResponse)
+
+    with open("proof.xml", "w") as f:
+        f.write()
+
+    return
     form = await request.form()
     saml_response = form.get("SAMLResponse")  # Base64 encoded
 
