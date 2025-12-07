@@ -6,7 +6,8 @@ import json
 import lxml.etree as etree
 
 from spid.exceptions import SpidConfigError, SpidValidationError 
-from spid.utils import verify_xml_signature
+from spid.utils import verify_saml_signature_internal
+from spid.utils import base64_to_pem
 
 IDPS_FILE = settings.IDPS_FILE
 
@@ -41,7 +42,7 @@ def verify_saml_signature(xml_str: str) -> bool:
     for b64_cert in certs_list:
         pem_cert = base64_to_pem(b64_cert)
         try:
-            verified = verify_xml_signature(xml_str = xml_str, cert_data = pem_cert)
+            verified = verify_saml_signature_internal(xml_str = xml_str, cert_data = pem_cert)
             break
         except SpidValidationError as e:
             continue
@@ -108,11 +109,3 @@ def extract_spid_attributes(saml_response_b64: str) -> dict:
             attributes["residenza"] = value
 
     return attributes
-
-def base64_to_pem(b64_cert: str) -> str:
-
-    """Converte un certificato Base64 in formato PEM."""
-    pem = "-----BEGIN CERTIFICATE-----\n"
-    pem += "\n".join([b64_cert[i:i+64] for i in range(0, len(b64_cert), 64)])
-    pem += "\n-----END CERTIFICATE-----\n"
-    return pem

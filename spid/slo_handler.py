@@ -2,9 +2,14 @@ from settings import settings
 
 from fastapi.responses import HTMLResponse
 
-import uuid
+import uuid, json
 from datetime import datetime, timezone
 from lxml import etree
+
+from spid.exceptions import SpidConfigError, SpidValidationError 
+from spid.utils import base64_to_pem, verify_saml_signature_external
+
+IDPS_FILE = settings.IDPS_FILE
 
 def generate_logout_request(session_id: str, idp_name_qualifier: str, idp_slo_url: str):
     
@@ -76,3 +81,45 @@ def render_logout_form(slo_url: str, saml_request: str, relay_state: str) -> HTM
     </html>
     """
     return HTMLResponse(content=html_content)
+
+def verify_saml_signature(xml_str: str, query_string: str, signature: str, sig_alg: str) -> bool:
+
+    root = etree.fromstring(xml_str)
+
+    # Find Issuer to identify IdP
+    issuer_node = root.xpath(".//saml:Issuer", namespaces={"saml": "urn:oasis:names:tc:SAML:2.0:assertion"})
+    issuer_node = issuer_node[0]
+    
+    if issuer_node is None or issuer_node.text is None:
+        raise SpidConfigError("Issuer not found in SAMLResponse")
+    issuer_value = issuer_node.text.strip()
+
+    try:
+        # Load IdP certificates
+        with open(IDPS_FILE, "r") as f:
+            idps = json.load(f)
+    except Exception as e:
+        raise SpidConfigError(f"Error loading IdPs file: {e}")
+    
+    idps_info = idps.get(issuer_value)
+    
+    if not idps_info:
+        raise SpidConfigError(f"No IdP info found for issuer {issuer_value}")
+    certs_list = idps_info.get("signing_certificate_x509", [])
+    if not certs_list:
+        raise SpidConfigError(f"No certificates found for IdP {issuer_value}")
+
+    # Verify signature with all certificates
+    verified = False
+    for b64_cert in certs_list:
+        pem_cert = base64_to_pem(b64_cert)
+        try:
+            verified = verify_saml_signature_external(query_string = query_string, signature=signature, sig_alg=sig_alg, cert_data = pem_cert)
+            break
+        except SpidValidationError as e:
+            continue
+
+    if not verified:
+        return False
+
+    return True

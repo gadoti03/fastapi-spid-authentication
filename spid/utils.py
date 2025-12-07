@@ -6,6 +6,10 @@ from lxml import etree
 import xmlsec
 from signxml import XMLSigner, methods
 import xml.etree.ElementTree as ET
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 
 from spid.exceptions import SpidSignatureError, SpidConfigError, SpidValidationError
 
@@ -146,7 +150,7 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str, after_tag: str = None)
     
     return etree.tostring(signed_root, pretty_print=False, xml_declaration=False, encoding="UTF-8").decode("utf-8")
 
-def verify_xml_signature(xml_str: str, cert_path: str = None, cert_data: str = None) -> bool:
+def verify_saml_signature_internal(xml_str: str, cert_path: str = None, cert_data: str = None) -> bool:
     ###################################
     ###################################
     ###################################
@@ -188,7 +192,44 @@ def verify_xml_signature(xml_str: str, cert_path: str = None, cert_data: str = N
         return True
     except xmlsec.Error as e:
         raise SpidValidationError(f"Signature verification failed: {e}")
+
+def verify_saml_signature_external(query_string: str, signature: str, sig_alg: str, cert_path: str = None, cert_data: str = None) -> bool:
     
+    if (not cert_path and not cert_data) or (cert_path and cert_data):
+        raise Exception("Provide either cert_path or cert_data, not both or neither.")
+    
+    if cert_path:
+        try:
+            # Load cert
+            with open(cert_path, "r") as fcert:
+                cert_data = fcert.read()
+        except Exception as e:
+            raise SpidConfigError(f"Error loading certificate: {e}")
+
+        pub_key = serialization.load_pem_public_key(cert_data, backend=default_backend())
+
+        # Map algotithms
+        alg_map = {
+            "rsa-sha1": hashes.SHA1,
+            "rsa-sha256": hashes.SHA256,
+            "rsa-sha512": hashes.SHA512
+        }
+
+        if sig_alg.lower() not in alg_map:
+            raise SpidConfigError(f"Algorithm not supported: {sig_alg}")
+
+        # Verify sign
+        try:
+            pub_key.verify(
+                signature,
+                query_string,
+                padding.PKCS1v15(),
+                alg_map[sig_alg.lower()]()
+            )
+            return True
+        except Exception:
+            raise SpidValidationError(f"Signature verification failed: {e}")
+
 def encode_b64(xml: str) -> str:
 
     xml_bytes = xml.encode("utf-8")
@@ -216,3 +257,37 @@ def get_field_in_xml(xml_str: str, field: str) -> str | None:
     except ET.ParseError as e:
         print(f"XML parsing error: {e}")
         return None
+    
+from lxml import etree
+
+def verify_saml_status(xml_str: str) -> bool:
+
+    try:
+        root = etree.fromstring(xml_str.encode("utf-8"))
+    except Exception as e:
+        raise ValueError(f"Parsing XML fallito: {e}")
+
+    # Cerca il nodo StatusCode
+    status_nodes = root.xpath(
+        "//samlp:StatusCode",
+        namespaces={"samlp": "urn:oasis:names:tc:SAML:2.0:protocol"}
+    )
+
+    if not status_nodes:
+        return False
+
+    # Controlla se Value è Success
+    for node in status_nodes:
+        value = node.get("Value")
+        if value == "urn:oasis:names:tc:SAML:2.0:status:Success":
+            return True
+
+    return False
+
+def base64_to_pem(b64_cert: str) -> str:
+
+    """Converte un certificato Base64 in formato PEM."""
+    pem = "-----BEGIN CERTIFICATE-----\n"
+    pem += "\n".join([b64_cert[i:i+64] for i in range(0, len(b64_cert), 64)])
+    pem += "\n-----END CERTIFICATE-----\n"
+    return pem

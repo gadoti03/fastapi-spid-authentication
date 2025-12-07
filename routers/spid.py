@@ -3,14 +3,14 @@ from settings import settings
 from fastapi import APIRouter, Request, Query, Depends, Response, HTTPException, Form
 from fastapi.responses import Response, FileResponse, RedirectResponse
 
-import os, base64
+import os, base64, zlib
 import xml.etree.ElementTree as ET
 
 from schemas.models import SpidLoginRequest
 from spid.exceptions import SpidConfigError, SpidSignatureError
 from spid.authn_request import generate_authn_request, get_idp_url, render_saml_form
-from spid.acs_handler import verify_saml_signature, verify_saml_status, extract_spid_attributes
-from spid.slo_handler import generate_logout_request
+from spid.acs_handler import verify_saml_signature as verify_saml_signature_acs, verify_saml_status, extract_spid_attributes
+from spid.slo_handler import generate_logout_request, verify_saml_signature as verify_saml_signature_slo
 from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml
 # from spid.slo_handler import 
 
@@ -62,12 +62,11 @@ async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/"
         f.write(decoded_xml.decode())
 
     # verify signature
-    if not verify_saml_signature(decoded_xml):
+    if not verify_saml_signature_acs(decoded_xml):
         raise HTTPException(status_code=401, detail="Invalid SAML signature")
     
-    # verify status
-    # if not verify_saml_status(decoded_xml):
-    #    raise HTTPException(status_code=403, detail="Authentication Failed")
+    if not verify_saml_status(decoded_xml):
+        raise HTTPException(status_code=403, detail="Authentication Failed")
     
     # get SessionIndex
     sessionIndex = get_field_in_xml(decoded_xml, "SessionIndex")
@@ -124,17 +123,34 @@ async def spid_logout_request(session: str = Query(...)):
 @router.post("/slo")
 async def spid_slo(SAMLResponse: str, RelayState: str | None = None, SigAlg: str | None = None, Signature: str | None = None):
     print("hbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-    
+
 @router.get("/slo")
-async def spid_slo(SAMLResponse: str, RelayState: str | None = None, SigAlg: str | None = None, Signature: str | None = None):
+async def spid_slo(AMLResponse: str, SigAlg: str, Signature: str, RelayState: str | None = None):
+
+    # query
+    query_string = request.scope["query_string"].decode("utf-8")
     
-    #  ricevo 4 campi
-    # devo capire se tutti inviano 4 campi
+    SAMLResponse = request.query_params.get("SAMLResponse") 
+    signature = request.query_params.get("Signature") 
+    sig_alg = request.query_params.get("SigAlg") 
+    relay_state = request.query_params.get("RelayState") 
+    
+    # parsing xml
+    decoded_xml_compressed = base64.b64decode(SAMLResponse)
+    decoded_xml = zlib.decompress(decoded_xml_compressed, -15).decode("utf-8")
+    
+    # parsing singature
+    signature = base64.b64decode(signature)
 
-    decoded_xml = base64.b64decode(SAMLResponse)
+    print(decoded_xml)
 
-    with open("proof.xml", "w") as f:
-        f.write()
+    # verify signature
+    if not verify_saml_signature_slo(decoded_xml, query_string, signature, sig_alg):
+        raise HTTPException(status_code=401, detail="Invalid SAML signature")
+
+
+
+    print(decoded_xml)
 
     return
     form = await request.form()
