@@ -1,6 +1,6 @@
 # DI COSA HO BISOGNO???
 
-0) verifica quando necessito altre verifiche
+0) verifica quando necessito altre verifiche o sign
 
 1) nella rotazione usa le funzioni di util
 

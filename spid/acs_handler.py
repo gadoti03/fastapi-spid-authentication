@@ -42,14 +42,11 @@ def verify_saml_signature(xml_str: str) -> bool:
         pem_cert = base64_to_pem(b64_cert)
         try:
             verified = verify_xml_signature(xml_str = xml_str, cert_data = pem_cert)
-            print(f"Signature verified with certificate:\n{pem_cert}")
             break
         except SpidValidationError as e:
-            print(f"Verification failed with this certificate: {e}")
             continue
 
     if not verified:
-        print("Signature verification failed with all provided certificates")
         return False
 
     return True

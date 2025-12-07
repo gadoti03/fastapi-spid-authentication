@@ -5,6 +5,7 @@ import base64
 from lxml import etree
 import xmlsec
 from signxml import XMLSigner, methods
+import xml.etree.ElementTree as ET
 
 from spid.exceptions import SpidSignatureError, SpidConfigError, SpidValidationError
 
@@ -106,6 +107,17 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str, after_tag: str = None)
 
     id_node = id_nodes[0]
     reference_id = id_node.get("ID")
+
+    ###################################
+    ###################################
+    ###################################
+    ###################################
+    print("Reference ID", reference_id)
+    ###################################
+    ###################################
+    ###################################
+    ###################################
+    
     node_to_sign = root.xpath(f"//*[@ID='{reference_id}']")[0]
 
     try:
@@ -135,7 +147,15 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str, after_tag: str = None)
     return etree.tostring(signed_root, pretty_print=False, xml_declaration=False, encoding="UTF-8").decode("utf-8")
 
 def verify_xml_signature(xml_str: str, cert_path: str = None, cert_data: str = None) -> bool:
-
+    ###################################
+    ###################################
+    ###################################
+    ###################################
+    print("InResponseTo", get_in_response_to(xml_str))
+    ###################################
+    ###################################
+    ###################################
+    ###################################
     if (not cert_path and not cert_data) or (cert_path and cert_data):
         raise Exception("Provide either cert_path or cert_data, not both or neither.")
     
@@ -175,3 +195,24 @@ def encode_b64(xml: str) -> str:
 
     b64_authn = base64.b64encode(xml_bytes).decode()
     return b64_authn
+
+def get_in_response_to(xml_str: str) -> str | None:
+    try:
+        # Parse the XML
+        root = ET.fromstring(xml_str)
+
+        # Check for the InResponseTo attribute in the root (Response)
+        in_response_to = root.attrib.get('InResponseTo')
+        if in_response_to:
+            return in_response_to
+
+        # In some cases it might be inside a nested AuthnResponse node
+        for elem in root.iter():
+            if 'InResponseTo' in elem.attrib:
+                return elem.attrib['InResponseTo']
+
+        return None
+
+    except ET.ParseError as e:
+        print(f"XML parsing error: {e}")
+        return None
