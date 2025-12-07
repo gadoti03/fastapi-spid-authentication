@@ -55,7 +55,7 @@ async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data:
 
 @router.post("/acs")
 async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/")):
-    
+    print("LKKKK")
     decoded_xml = base64.b64decode(SAMLResponse)
     
     with open("response.xml", "w") as f:
@@ -90,7 +90,7 @@ async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/"
     
     print(f"Utente autenticato: CF={codice_fiscale}, Residenza={residenza}")
     
-    return RedirectResponse(url=relayState)
+    return RedirectResponse(url=relayState, status_code=302)
 
 @router.get("/logout")
 async def spid_logout_request(session: str = Query(...)):
@@ -121,15 +121,15 @@ async def spid_logout_request(session: str = Query(...)):
     # render HTML con form auto-submit
     return render_saml_form(url_slo, saml_request, relay_state)
 
-
-
+@router.post("/slo")
+async def spid_slo(SAMLResponse: str, RelayState: str | None = None, SigAlg: str | None = None, Signature: str | None = None):
+    print("hbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+    
 @router.get("/slo")
-async def spid_slo(SAMLResponse: str = Query(...), relayState: str = Form("/")):
-    # ricevo 4 campi
+async def spid_slo(SAMLResponse: str, RelayState: str | None = None, SigAlg: str | None = None, Signature: str | None = None):
+    
+    #  ricevo 4 campi
     # devo capire se tutti inviano 4 campi
-    """
-    Endpoint che riceve la LogoutResponse dall'IdP SPID.
-    """
 
     decoded_xml = base64.b64decode(SAMLResponse)
 
