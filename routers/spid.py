@@ -94,6 +94,7 @@ async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/"
 
 @router.post("/logout")
 async def spid_logout_request(request: Request):
+    
     relay_state = "/"
     ################################
     # LETTURA NELLA PROPRIA SESSIONE
