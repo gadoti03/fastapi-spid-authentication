@@ -51,6 +51,40 @@ def verify_saml_signature(xml_str: str) -> bool:
 
     return True
 
+import xml.etree.ElementTree as ET
+
+def verify_saml_status(xml_string: str) -> bool:
+
+    try:
+        # Parse XML safely
+        root = ET.fromstring(xml_string)
+    except ET.ParseError:
+        # Invalid XML → fail closed
+        return False
+
+    # Namespaces used in SAML responses
+    ns = {
+        "samlp": "urn:oasis:names:tc:SAML:2.0:protocol"
+    }
+
+    # Look for <samlp:StatusCode>
+    status_code_el = root.find(".//samlp:Status/samlp:StatusCode", ns)
+    if status_code_el is None:
+        # Missing status → invalid
+        return False
+
+    code_value = status_code_el.attrib.get("Value")
+    if code_value is None:
+        # No value → invalid
+        return False
+
+    # Success constant
+    SUCCESS = "urn:oasis:names:tc:SAML:2.0:status:Success"
+
+    # Success → OK, anything else is failure
+    return code_value == SUCCESS
+    
+
 def extract_spid_attributes(saml_response_b64: str) -> dict:
 
     root = etree.fromstring(saml_response_b64)
@@ -74,20 +108,6 @@ def extract_spid_attributes(saml_response_b64: str) -> dict:
             attributes["residenza"] = value
 
     return attributes
-
-def decrypt_assertion(root, sp_private_key_path: str):
-
-    # Find the EncryptedAssertion
-    enc_node = root.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}EncryptedAssertion")
-    if enc_node is None:
-        # If there is not, return the plain root
-        return root.find(".//{urn:oasis:names:tc:SAML:2.0:assertion}Assertion")
-
-    # Load private key
-    key = xmlsec.Key.from_file(sp_private_key_path, xmlsec.constants.KeyDataFormatPem)
-    ctx = xmlsec.DecryptContext(key)
-    decrypted_node = ctx.decrypt(enc_node)
-    return decrypted_node
 
 def base64_to_pem(b64_cert: str) -> str:
 

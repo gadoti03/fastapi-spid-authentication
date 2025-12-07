@@ -9,8 +9,10 @@ import xml.etree.ElementTree as ET
 from schemas.models import SpidLoginRequest
 from spid.exceptions import SpidConfigError, SpidSignatureError
 from spid.authn_request import generate_authn_request, get_idp_url, render_saml_form
-from spid.acs_handler import verify_saml_signature, extract_spid_attributes
-from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64
+from spid.acs_handler import verify_saml_signature, verify_saml_status, extract_spid_attributes
+from spid.slo_handler import generate_logout_request
+from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml
+# from spid.slo_handler import 
 
 router = APIRouter()
 
@@ -30,13 +32,17 @@ async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data:
     try:
         # get idp url
         idp_url = get_idp_url(idp)
+        
         # generate the AuthnRequest XML
         xml, request_id = generate_authn_request(idp_url)
         #   -> maybe request_is should be saved
+        
         # sign the AuthnRequest XML 
         xml = sign_xml(xml_str = xml, key_path = get_key_path(), cert_path = get_cert_path(), after_tag="Issuer")
+        
         # base64 encode the signed AuthnRequest XML
         saml_request = encode_b64(xml)
+
         # render HTML con form auto-submit
         return render_saml_form(idp_url, saml_request, relay_state)
     
@@ -51,18 +57,31 @@ async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data:
 async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/")):
     
     decoded_xml = base64.b64decode(SAMLResponse)
-
-    # TODO:
-    # 1) IMP: decrypted
-    # 2) login solo per gli autenticati?
-    # 3) serve l'ID?
-    # 4) gestione sessione
-
+    
+    with open("response.xml", "w") as f:
+        f.write(decoded_xml.decode())
 
     # verify signature
     if not verify_saml_signature(decoded_xml):
         raise HTTPException(status_code=401, detail="Invalid SAML signature")
     
+    # verify status
+    # if not verify_saml_status(decoded_xml):
+    #    raise HTTPException(status_code=403, detail="Authentication Failed")
+    
+    # get SessionIndex
+    sessionIndex = get_field_in_xml(decoded_xml, "SessionIndex")
+    if not sessionIndex:
+        raise HTTPException(status_code=403, detail="Authentication Failed")
+    print("SessionIndex =", sessionIndex)
+
+    with open("session.txt", "w") as f:
+        f.write(sessionIndex)
+
+    # TODO:
+    # 0) login solo per gli autenticati
+    # 2) gestione sessione
+
     # extract SPID attributes
     user_attrs = extract_spid_attributes(decoded_xml)
     
@@ -73,8 +92,35 @@ async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/"
     
     return RedirectResponse(url=relayState)
 
-@router.post("/logout/acs")  # ACS = Assertion Consumer Service
-async def spid_logout_response(request: Request):
+@router.post("/logout")
+async def spid_logout_request(request: Request):
+    relay_state = "/"
+    ################################
+    # LETTURA NELLA PROPRIA SESSIONE
+    ################################
+
+    with open("session.txt", "r") as f:
+        session = f.read()
+    url_slo = "https://demo.spid.gov.it/samlsso"
+    idp_name_qualifier = "https://demo.spid.gov.it"
+    ################################
+
+    # generate LogoutRequest
+    xml, request_id = generate_logout_request(session, idp_name_qualifier, url_slo)
+
+    # sign the LogoutRequest XML 
+    xml = sign_xml(xml_str = xml, key_path = get_key_path(), cert_path = get_cert_path(), after_tag="SessionIndex")
+    
+    # base64 encode the signed LogoutRequest XML
+    saml_request = encode_b64(xml)
+    
+    # render HTML con form auto-submit
+    return render_saml_form(url_slo, saml_request, relay_state)
+
+
+
+@router.post("/slo")  #
+async def spid_slo(request: Request):
     """
     Endpoint che riceve la LogoutResponse dall'IdP SPID.
     """

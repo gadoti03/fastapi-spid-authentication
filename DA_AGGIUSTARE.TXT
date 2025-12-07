@@ -3,3 +3,5 @@
 
 2) richiesta periodica di metadata spid
     -> ogni qual volta che scarico i metadata (periodicamente) ne devo anche verificare le firme!
+
+3) nel caso l'utente non accetto di condividere i dati non devo creare la sessione

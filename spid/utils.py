@@ -151,7 +151,7 @@ def verify_xml_signature(xml_str: str, cert_path: str = None, cert_data: str = N
     ###################################
     ###################################
     ###################################
-    print("InResponseTo", get_in_response_to(xml_str))
+    print("InResponseTo", get_field_in_xml(xml_str, "InResponseTo"))
     ###################################
     ###################################
     ###################################
@@ -196,20 +196,20 @@ def encode_b64(xml: str) -> str:
     b64_authn = base64.b64encode(xml_bytes).decode()
     return b64_authn
 
-def get_in_response_to(xml_str: str) -> str | None:
+def get_field_in_xml(xml_str: str, field: str) -> str | None:
     try:
         # Parse the XML
         root = ET.fromstring(xml_str)
 
         # Check for the InResponseTo attribute in the root (Response)
-        in_response_to = root.attrib.get('InResponseTo')
+        in_response_to = root.attrib.get(field)
         if in_response_to:
             return in_response_to
 
         # In some cases it might be inside a nested AuthnResponse node
         for elem in root.iter():
-            if 'InResponseTo' in elem.attrib:
-                return elem.attrib['InResponseTo']
+            if field in elem.attrib:
+                return elem.attrib[field]
 
         return None
 
