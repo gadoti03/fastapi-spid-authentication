@@ -113,16 +113,6 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str, after_tag: str = None)
 
     id_node = id_nodes[0]
     reference_id = id_node.get("ID")
-
-    ###################################
-    ###################################
-    ###################################
-    ###################################
-    print("Reference ID", reference_id)
-    ###################################
-    ###################################
-    ###################################
-    ###################################
     
     node_to_sign = root.xpath(f"//*[@ID='{reference_id}']")[0]
 
@@ -153,15 +143,7 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str, after_tag: str = None)
     return etree.tostring(signed_root, pretty_print=False, xml_declaration=False, encoding="UTF-8").decode("utf-8")
 
 def verify_saml_signature_internal(xml_str: str, cert_path: str = None, cert_data: str = None) -> bool:
-    ###################################
-    ###################################
-    ###################################
-    ###################################
-    print("InResponseTo", get_field_in_xml(xml_str, "InResponseTo"))
-    ###################################
-    ###################################
-    ###################################
-    ###################################
+
     if (not cert_path and not cert_data) or (cert_path and cert_data):
         raise Exception("Provide either cert_path or cert_data, not both or neither.")
     
@@ -234,7 +216,7 @@ def get_field_in_xml(xml_str: str, field: str) -> str | None:
         # Parse the XML
         root = ET.fromstring(xml_str)
 
-        # Check for the InResponseTo attribute in the root (Response)
+        # Check for the attribute in the root
         in_response_to = root.attrib.get(field)
         if in_response_to:
             return in_response_to

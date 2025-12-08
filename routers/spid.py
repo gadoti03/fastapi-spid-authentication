@@ -71,6 +71,10 @@ async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/"
     
     # get SessionIndex
     sessionIndex = get_field_in_xml(decoded_xml, "SessionIndex")
+
+    # get RequestID
+    request_id = get_field_in_xml(decoded_xml, "InResponseTo")
+
     if not sessionIndex:
         raise HTTPException(status_code=403, detail="Authentication Failed")
     print("SessionIndex =", sessionIndex)
@@ -154,6 +158,9 @@ async def spid_slo(request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
+    # get RequestID
+    request_id = get_field_in_xml(decoded_xml, "InResponseTo")
+    
     return RedirectResponse(url=relay_state, status_code=302)
 
 
