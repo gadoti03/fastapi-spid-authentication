@@ -82,44 +82,36 @@ def render_logout_form(slo_url: str, saml_request: str, relay_state: str) -> HTM
     """
     return HTMLResponse(content=html_content)
 
-def verify_saml_signature(xml_str: str, query_string: str, signature: str, sig_alg: str) -> bool:
-
-    root = etree.fromstring(xml_str)
-
-    # Find Issuer to identify IdP
-    issuer_node = root.xpath(".//saml:Issuer", namespaces={"saml": "urn:oasis:names:tc:SAML:2.0:assertion"})
-    issuer_node = issuer_node[0]
-    
-    if issuer_node is None or issuer_node.text is None:
-        raise SpidConfigError("Issuer not found in SAMLResponse")
-    issuer_value = issuer_node.text.strip()
-
+def verify_saml_signature(query_string: str, signature: bytes, sig_alg: str, xml_str: str) -> bool:
+    """
+    Verifica la firma della query string per SLO SPID.
+    """
+    # Estrai l'issuer dal SAMLResponse XML
     try:
-        # Load IdP certificates
+        root = etree.fromstring(xml_str.encode("utf-8"))
+        issuer_node = root.xpath(".//saml:Issuer", namespaces={"saml": "urn:oasis:names:tc:SAML:2.0:assertion"})[0]
+        issuer_value = issuer_node.text.strip()
+    except Exception:
+        raise Exception("Impossible to extract Issuer from SAMLResponse")
+
+    # Carica i certificati dell'IdP
+    try:
         with open(IDPS_FILE, "r") as f:
             idps = json.load(f)
+        idp_info = idps.get(issuer_value)
+        certs_b64 = idp_info.get("signing_certificate_x509", [])
+        if not certs_b64:
+            raise Exception(f"No certificates found for IdP {issuer_value}")
     except Exception as e:
-        raise SpidConfigError(f"Error loading IdPs file: {e}")
-    
-    idps_info = idps.get(issuer_value)
-    
-    if not idps_info:
-        raise SpidConfigError(f"No IdP info found for issuer {issuer_value}")
-    certs_list = idps_info.get("signing_certificate_x509", [])
-    if not certs_list:
-        raise SpidConfigError(f"No certificates found for IdP {issuer_value}")
+        raise Exception(f"Error loading IdP certificates: {e}")
 
-    # Verify signature with all certificates
-    verified = False
-    for b64_cert in certs_list:
+    # Verifica la firma con tutti i certificati disponibili
+    for b64_cert in certs_b64:
         pem_cert = base64_to_pem(b64_cert)
         try:
-            verified = verify_saml_signature_external(query_string = query_string, signature=signature, sig_alg=sig_alg, cert_data = pem_cert)
-            break
-        except SpidValidationError as e:
+            if verify_saml_signature_external(query_string, signature, sig_alg, pem_cert):
+                return True
+        except Exception:
             continue
 
-    if not verified:
-        return False
-
-    return True
+    return False

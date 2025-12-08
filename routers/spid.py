@@ -5,13 +5,14 @@ from fastapi.responses import Response, FileResponse, RedirectResponse
 
 import os, base64, zlib
 import xml.etree.ElementTree as ET
+from urllib.parse import quote, unquote
 
 from schemas.models import SpidLoginRequest
-from spid.exceptions import SpidConfigError, SpidSignatureError
+from spid.exceptions import SpidConfigError, SpidSignatureError, SpidInternalError
 from spid.authn_request import generate_authn_request, get_idp_url, render_saml_form
 from spid.acs_handler import verify_saml_signature as verify_saml_signature_acs, verify_saml_status, extract_spid_attributes
 from spid.slo_handler import generate_logout_request, verify_saml_signature as verify_saml_signature_slo
-from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml
+from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml, parse_query
 # from spid.slo_handler import 
 
 router = APIRouter()
@@ -125,38 +126,98 @@ async def spid_slo(SAMLResponse: str, RelayState: str | None = None, SigAlg: str
     print("hbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 
 @router.get("/slo")
-async def spid_slo(AMLResponse: str, SigAlg: str, Signature: str, RelayState: str | None = None):
-
-    # query
-    query_string = request.scope["query_string"].decode("utf-8")
+async def spid_slo(request: Request):
     
-    SAMLResponse = request.query_params.get("SAMLResponse") 
-    signature = request.query_params.get("Signature") 
-    sig_alg = request.query_params.get("SigAlg") 
-    relay_state = request.query_params.get("RelayState") 
-    
-    # parsing xml
-    decoded_xml_compressed = base64.b64decode(SAMLResponse)
-    decoded_xml = zlib.decompress(decoded_xml_compressed, -15).decode("utf-8")
-    
-    # parsing singature
-    signature = base64.b64decode(signature)
+    # get raw query
+    raw_query = request.scope["query_string"].decode("utf-8")
 
-    print(decoded_xml)
+    try:
+        slo_data = parse_query(raw_query)
+    except SpidInternalError as e:
+        raise HTTPException(status_code=500, detail=f"Params Invalid Error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
-    # verify signature
-    if not verify_saml_signature_slo(decoded_xml, query_string, signature, sig_alg):
+
+    decoded_xml = slo_data["decoded_xml"]
+    relay_state = slo_data["RelayState"]
+    sig_alg = slo_data["SigAlg"]
+    signature = slo_data["Signature"]
+    query_to_verify = slo_data["query_to_verify"]
+
+    # validate signature
+    try:
+        if not verify_saml_signature_slo(query_to_verify, signature, sig_alg, decoded_xml):
+            raise HTTPException(status_code=401, detail="Invalid SAML signature")
+    except SpidSignatureError as e:
+        raise HTTPException(status_code=500, detail=f"SPID Signature Error: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+
+    return RedirectResponse(url=relay_state, status_code=302)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+@router.get("/slo")
+async def spid_slo(SAMLResponse: str, SigAlg: str, Signature: str, RelayState: str | None = None):
+    print(RelayState)
+    # Ricostruisci la query string esattamente come firmata dall'IdP
+    query_to_verify = f"SAMLResponse={quote(SAMLResponse)}"
+    if RelayState is not None:
+        query_to_verify += f"&RelayState={quote(RelayState)}"
+    query_to_verify += f"&SigAlg={quote(SigAlg)}"
+
+    print(query_to_verify)
+
+    # Decodifica la signature da base64
+    try:
+        signature_bytes = base64.b64decode(Signature)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Errore decodifica Signature: {e}")
+
+    # Decomprimi e decodifica SAMLResponse per log o eventuale verifica dello Status
+    try:
+        decoded_xml = zlib.decompress(base64.b64decode(SAMLResponse), -15).decode("utf-8")
+        print("SAMLResponse XML:", decoded_xml)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Errore decodifica SAMLResponse: {e}")
+
+    # Verifica firma
+    if not verify_saml_signature_slo(query_to_verify, signature_bytes, SigAlg, decoded_xml):
         raise HTTPException(status_code=401, detail="Invalid SAML signature")
 
+    # Qui puoi gestire la terminazione della sessione utente
+    return {"status": "ok", "message": "SLO completed"}
 
-
-    print(decoded_xml)
-
-    return
-    form = await request.form()
-    saml_response = form.get("SAMLResponse")  # Base64 encoded
-
-    # 1. decodifica e verifica la risposta
-    # 2. aggiorna/cancella sessione locale
-    # 3. ridireziona utente a pagina di conferma logout
-    return Response("Logout completato", status_code=200)
+'''

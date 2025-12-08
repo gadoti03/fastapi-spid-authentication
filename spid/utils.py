@@ -1,17 +1,19 @@
 from settings import settings
 
-import os
-import base64
+import os, base64, zlib
 from lxml import etree
 import xmlsec
 from signxml import XMLSigner, methods
+from urllib.parse import unquote
 import xml.etree.ElementTree as ET
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+from cryptography import x509
 
-from spid.exceptions import SpidSignatureError, SpidConfigError, SpidValidationError
+
+from spid.exceptions import SpidSignatureError, SpidConfigError, SpidValidationError, SpidInternalError
 
 def get_key_and_cert():
 
@@ -193,42 +195,32 @@ def verify_saml_signature_internal(xml_str: str, cert_path: str = None, cert_dat
     except xmlsec.Error as e:
         raise SpidValidationError(f"Signature verification failed: {e}")
 
-def verify_saml_signature_external(query_string: str, signature: str, sig_alg: str, cert_path: str = None, cert_data: str = None) -> bool:
-    
-    if (not cert_path and not cert_data) or (cert_path and cert_data):
-        raise Exception("Provide either cert_path or cert_data, not both or neither.")
-    
-    if cert_path:
-        try:
-            # Load cert
-            with open(cert_path, "r") as fcert:
-                cert_data = fcert.read()
-        except Exception as e:
-            raise SpidConfigError(f"Error loading certificate: {e}")
+def verify_saml_signature_external(query_string: str, signature: bytes, sig_alg: str, pem_cert: str) -> bool:
+    """
+    Verifica la signature con un certificato PEM.
+    """
+    cert = x509.load_pem_x509_certificate(pem_cert.encode(), default_backend())
+    pub_key = cert.public_key()
 
-        pub_key = serialization.load_pem_public_key(cert_data, backend=default_backend())
+    # Determina l'algoritmo di digest
+    sig_alg_lower = sig_alg.lower()
+    if "sha256" in sig_alg_lower:
+        digest = hashes.SHA256()
+    elif "sha1" in sig_alg_lower:
+        digest = hashes.SHA1()
+    elif "sha512" in sig_alg_lower:
+        digest = hashes.SHA512()
+    else:
+        raise Exception(f"Algorithm not supported: {sig_alg}")
 
-        # Map algotithms
-        alg_map = {
-            "rsa-sha1": hashes.SHA1,
-            "rsa-sha256": hashes.SHA256,
-            "rsa-sha512": hashes.SHA512
-        }
-
-        if sig_alg.lower() not in alg_map:
-            raise SpidConfigError(f"Algorithm not supported: {sig_alg}")
-
-        # Verify sign
-        try:
-            pub_key.verify(
-                signature,
-                query_string,
-                padding.PKCS1v15(),
-                alg_map[sig_alg.lower()]()
-            )
-            return True
-        except Exception:
-            raise SpidValidationError(f"Signature verification failed: {e}")
+    # Verifica la firma
+    pub_key.verify(
+        signature,
+        query_string.encode("utf-8"),
+        padding.PKCS1v15(),
+        digest
+    )
+    return True
 
 def encode_b64(xml: str) -> str:
 
@@ -291,3 +283,50 @@ def base64_to_pem(b64_cert: str) -> str:
     pem += "\n".join([b64_cert[i:i+64] for i in range(0, len(b64_cert), 64)])
     pem += "\n-----END CERTIFICATE-----\n"
     return pem
+
+def parse_query(raw_query: str) -> dict:
+
+    # Dividi in parametri senza decodificare
+    params = {}
+    for part in raw_query.split("&"):
+        if "=" in part:
+            key, value = part.split("=", 1)  # solo il primo '='
+            params[key] = value
+        else:
+            params[part] = ""
+
+    # Preleva i singoli parametri
+    SAMLResponse = params.get("SAMLResponse")
+    RelayState = params.get("RelayState")
+    SigAlg = params.get("SigAlg")
+    Signature = params.get("Signature")
+
+    if not SAMLResponse or not SigAlg or not Signature:
+        raise SpidInternalError("GET request received is invalid")
+
+    # Build the query string like the IdP
+    query_to_verify = f"SAMLResponse={SAMLResponse}"
+    if RelayState is not None:
+        query_to_verify += f"&RelayState={RelayState}"
+    query_to_verify += f"&SigAlg={SigAlg}"
+
+    # Decode the signature from base64
+    try:
+        signature_bytes = base64.b64decode(unquote(Signature))
+    except Exception as e:
+        raise SpidInternalError("GET request received is invalid")
+
+    # Unzip and decode SAMLResponse
+    try:
+        decoded_xml = zlib.decompress(base64.b64decode(unquote(SAMLResponse)), -15).decode("utf-8")
+        print("SAMLResponse XML:", decoded_xml)
+    except Exception as e:
+        raise SpidInternalError("GET request received is invalid")
+
+    return {
+        "decoded_xml": decoded_xml,
+        "RelayState": unquote(RelayState) if RelayState else None,
+        "SigAlg": unquote(SigAlg),
+        "Signature": signature_bytes,
+        "query_to_verify": query_to_verify
+    }
