@@ -301,7 +301,6 @@ def parse_query(raw_query: str) -> dict:
     # Unzip and decode SAMLResponse
     try:
         decoded_xml = zlib.decompress(base64.b64decode(unquote(SAMLResponse)), -15).decode("utf-8")
-        print("SAMLResponse XML:", decoded_xml)
     except Exception as e:
         raise SpidInternalError("GET request received is invalid")
 
