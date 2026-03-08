@@ -36,6 +36,8 @@ async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data:
         # generate the AuthnRequest XML
         xml, request_id = generate_authn_request(idp_url)
         #   -> maybe request_is should be saved
+
+        print("Request ID /login:", request_id)
         
         # sign the AuthnRequest XML 
         xml = sign_xml(xml_str = xml, key_path = get_key_path(), cert_path = get_cert_path(), after_tag="Issuer")
@@ -55,10 +57,10 @@ async def spid_login(idp: str = Form(...), relay_state: str = Form("")): # data:
 
 @router.post("/acs")
 async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/")):
-    decoded_xml = base64.b64decode(SAMLResponse)
+    decoded_xml = base64.b64decode(SAMLResponse).decode("utf-8")
     
     with open("response.xml", "w") as f:
-        f.write(decoded_xml.decode())
+        f.write(decoded_xml)
 
     # verify signature
     if not verify_saml_signature_acs(decoded_xml):
@@ -72,6 +74,8 @@ async def acs_endpoint(SAMLResponse: str = Form(...), relayState: str = Form("/"
 
     # get RequestID
     request_id = get_field_in_xml(decoded_xml, "InResponseTo")
+
+    print("Request ID /acs:", request_id)
 
     if not sessionIndex:
         raise HTTPException(status_code=403, detail="Authentication Failed")
@@ -116,6 +120,8 @@ async def spid_logout_request(session: str = Query(...)):
     # generate LogoutRequest
     xml, request_id = generate_logout_request(session, idp_name_qualifier, url_slo)
 
+    print("Request ID /logout:", request_id)
+
     # sign the LogoutRequest XML 
     xml = sign_xml(xml_str = xml, key_path = get_key_path(), cert_path = get_cert_path(), after_tag="SessionIndex")
     
@@ -138,7 +144,6 @@ async def spid_slo(request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
-
     decoded_xml = slo_data["decoded_xml"]
     relay_state = slo_data["RelayState"]
     sig_alg = slo_data["SigAlg"]
@@ -160,5 +165,7 @@ async def spid_slo(request: Request):
     
     # get RequestID
     request_id = get_field_in_xml(decoded_xml, "InResponseTo")
+
+    print("Request ID /slo:", request_id)
     
     return RedirectResponse(url=relay_state, status_code=302)
