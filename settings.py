@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     METADATA_PATH: str
     METADATA_CLEAN_PATH: str
 
+    # DATA CONSTRAINTS
+    REQUIRED_RESIDENCE: str
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

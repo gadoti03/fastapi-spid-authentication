@@ -9,6 +9,8 @@ from database.connection import get_db
 
 from database.models import Session as DBSess
 
+from crud.session import get_session
+
 from datetime import datetime, timedelta
 import uuid
 
@@ -17,27 +19,12 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/login", response_class=Response) # response_class=Response: avoid default JSON response
 async def login(request: Request, db: Session = Depends(get_db)):
+        
+    # Get session ID from cookies
+    session_id = request.cookies.get("session_id")
     
-    db_session = None
-    
-    Session_id = request.cookies.get("session_id")
-    
-    if Session_id:
-        db_session = db.query(DBSess).filter(DBSess.id == Session_id).first()
-        if db_session and not db_session.is_active:
-            db_session = None
-
-    if not db_session:
-        db_session = DBSess(
-            id=str(uuid.uuid4()),
-            created_at=datetime.utcnow(),
-            expires_at=datetime.utcnow() + timedelta(days=1),
-            spid_session_index=None,
-            is_active=True
-        )
-        db.add(db_session)
-        db.commit()
-        db.refresh(db_session)
+    # Get existing session or create new one if not valid
+    db_session = get_session(db, session_id)
 
     # Set session cookie in response
     response = templates.TemplateResponse("home.html", {"request": request})
