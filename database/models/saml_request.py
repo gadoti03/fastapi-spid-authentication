@@ -9,9 +9,9 @@ import secrets
 class SamlRequest(Base):
     __tablename__ = "saml_requests"
 
-    id = Column(Integer, primary_key=True) # SAML Request ID
+    id = Column(String, primary_key=True) # SAML Request ID
     request_id = Column(String, unique=True) # SAML Request ID from SPID
-    session_id = Column(Integer, ForeignKey("sessions.id")) # foreign key to Session
+    session_id = Column(String, ForeignKey("sessions.id")) # foreign key to Session
     request_type = Column(String) # e.g., "AuthnRequest", "LogoutRequest"
     created_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime, default=lambda: datetime.utcnow() + datetime.timedelta(minutes=5))

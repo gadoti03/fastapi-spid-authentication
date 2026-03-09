@@ -32,6 +32,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
             id=str(uuid.uuid4()),
             created_at=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(days=1),
+            spid_session_index=None,
             is_active=True
         )
         db.add(db_session)
@@ -39,7 +40,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
         db.refresh(db_session)
 
     # Set session cookie in response
-    response = templates.TemplateResponse("login.html", {"request": request})
+    response = templates.TemplateResponse("home.html", {"request": request})
     response.set_cookie(
         key="session_id", 
         value=db_session.id,
