@@ -13,6 +13,7 @@ class Session(Base):
     session_id = Column(String, unique=True, default=lambda: secrets.token_urlsafe(32)) # random session ID for the user
     user_id = Column(Integer, ForeignKey("users.id"), default=None) # foreign key to User
     spid_session_index = Column(String, unique=True, default=None) # SPID SessionIndex
+    idp_id = Column(String, default=None) # IDP identifier
     created_at = Column(DateTime, default=datetime.utcnow) 
     expires_at = Column(DateTime, default=lambda: datetime.utcnow() + datetime.timedelta(days=1))
     is_active = Column(Boolean, default=True)

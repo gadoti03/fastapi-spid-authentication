@@ -5,7 +5,7 @@ from settings import settings
 DATABASE_URL = settings.DATABASE_URL
 
 # bind the engine to the database URL
-engine = create_engine(DATABASE_URL, echo=True, future=True)
+engine = create_engine(DATABASE_URL, echo=False, future=True)
 # echo = True: log SQL statements on console
 # future = True: use the new features of SQLAlchemy 2.0
 

@@ -17,7 +17,7 @@ from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_fi
 from crud.saml_request import create_saml_request, use_saml_request
 
 from spid.acs_handler import verify_saml_signature as verify_saml_signature_acs, verify_saml_status, extract_spid_attributes
-from crud.session import get_or_create_session_by_session_id, update_session_with_spid_info
+from crud.session import get_or_create_session_by_session_id, update_session_with_spid_info, set_idp_id_by_session_id
 from crud.user import create_user, get_user_by_cf, create_or_get_user
 
 from spid.exceptions import SpidConfigError, SpidSignatureError, SpidValidationError, SpidBusinessRuleError, SpidInternalError
@@ -34,13 +34,15 @@ def initiate_authn_request(idp: str, db: Session, db_session: DBSess, relay_stat
 
     # get idp url
     idp_url = get_idp_url(idp)
+
+    db_session = set_idp_id_by_session_id(db, db_session.session_id, idp) # aggiorno la sessione con l'idp scelto dall'utente
+    if not db_session:
+        raise SpidInternalError("Session not found or expired for session_id: " + db_session.session_id)
     
     # generate the AuthnRequest XML
     xml, request_id = generate_authn_request(idp_url)
     
     # save the SAML request in the database
-    # imp: gli passo la sessione aggiornata
-    # mi servirà poi per associare la risposta SAML alla sessione utente, e quindi all'utente stesso
     create_saml_request(db, request_id, db_session.id, "AuthnRequest")
 
     # print("Request ID /login:", request_id)

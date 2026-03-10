@@ -49,3 +49,12 @@ def update_session_with_spid_info(db: Session, session_id: int, spid_session_ind
         db.refresh(session)
         return session
     return None
+
+def set_idp_id_by_session_id(db: Session, session_id: str, idp_id: str):
+    session = get_session_by_session_id(db, session_id) # get not expired session
+    if session:
+        session.idp_id = idp_id
+        db.commit()
+        db.refresh(session)
+        return session
+    return None
