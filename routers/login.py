@@ -9,7 +9,7 @@ from database.connection import get_db
 
 from database.models import Session as DBSess
 
-from crud.session import get_session
+from crud.session import get_or_create_session
 
 from datetime import datetime, timedelta
 import uuid
@@ -24,7 +24,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
     session_id = request.cookies.get("session_id")
     
     # Get existing session or create new one if not valid
-    db_session = get_session(db, session_id)
+    db_session = get_or_create_session(db, session_id)
 
     # Set session cookie in response
     response = templates.TemplateResponse("home.html", {"request": request})

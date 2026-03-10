@@ -14,10 +14,12 @@ from spid.acs_handler import verify_saml_signature as verify_saml_signature_acs,
 from spid.slo_handler import generate_logout_request, verify_saml_signature as verify_saml_signature_slo
 from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml, parse_query, verify_saml_status
 
+from services.spid_service import get_spid_metadata, initiate_authn_request
+
 from sqlalchemy.orm import Session
 from database.connection import get_db
 
-from crud.session import get_session, update_session_with_spid_info
+from crud.session import get_or_create_session, update_session_with_spid_info
 from crud.saml_request import create_saml_request, use_saml_request
 from crud.user import create_user, get_user_by_cf
 
@@ -27,57 +29,31 @@ METADATA_FILE = settings.METADATA_FILE
 
 @router.get("/metadata", response_class=Response) # response_class=Response: avoid default JSON response
 async def get_metadata():
-    if os.path.exists(METADATA_FILE):
-        return FileResponse(METADATA_FILE, media_type="application/xml")
-    else:
-        raise HTTPException(status_code=404, detail="Metadata not found")
+    return get_spid_metadata()
     
 @router.post("/login")
 async def spid_login(request: Request, db: Session = Depends(get_db), idp: str = Form(...), relay_state: str = Form("")): # data: SpidLoginRequest    
+    
     relay_state = relay_state or "/" # se è vuoto e stringa vuota da errore -> metti pagina di default
 
     # Get session ID from cookies
     session_id = request.cookies.get("session_id")
 
     # Get existing session or create new one if not valid
-    db_session = get_session(db, session_id)
+    db_session = get_or_create_session(db, session_id)
     
-    try:
-        # get idp url
-        idp_url = get_idp_url(idp)
-        
-        # generate the AuthnRequest XML
-        xml, request_id = generate_authn_request(idp_url)
-        
-        # save the SAML request in the database
-        create_saml_request(db, request_id, db_session.id, "AuthnRequest")
-
-        print("Request ID /login:", request_id)
-        
-        # sign the AuthnRequest XML 
-        xml = sign_xml(xml_str = xml, key_path = get_key_path(), cert_path = get_cert_path(), after_tag="Issuer")
-        
-        # base64 encode the signed AuthnRequest XML
-        saml_request = encode_b64(xml)
-
-        # render HTML con form auto-submit
-        return render_saml_form(idp_url, saml_request, relay_state)
-    
-    except SpidConfigError as e:
-        raise HTTPException(status_code=500, detail=f"SPID Configuration Error: {e}")
-    except SpidSignatureError as e:
-        raise HTTPException(status_code=500, detail=f"SPID Signature Error: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
+    return initiate_authn_request(idp, db, db_session, relay_state)
 
 @router.post("/acs")
 async def acs_endpoint(db: Session = Depends(get_db), SAMLResponse: str = Form(...), relayState: str = Form("/")):
+    
     decoded_xml = base64.b64decode(SAMLResponse).decode("utf-8")
 
     # verify signature
     if not verify_saml_signature_acs(decoded_xml):
         raise HTTPException(status_code=401, detail="Invalid SAML signature")
     
+    # verify status
     if not verify_saml_status(decoded_xml):
         raise HTTPException(status_code=403, detail="Authentication Failed")
     
