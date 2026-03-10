@@ -13,3 +13,16 @@ class SpidValidationError(Exception):
 class SpidInternalError(Exception):
     """unexpected errors"""
     pass
+
+class MetadataNotFoundError(Exception):
+    """Metadata file not found"""
+    pass
+
+class SpidBusinessRuleError(Exception):
+    """User does not meet business rules (e.g. residence requirement)"""
+    pass
+
+class SessionError(Exception):
+    """Problemi di sessione"""
+    pass
+
