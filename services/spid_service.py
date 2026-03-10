@@ -69,6 +69,8 @@ def handle_authn_response(decoded_xml: bytes, db: Session, relay_state: str):
     if not sessionIndex:
         raise SpidValidationError("SessionIndex not found in SAMLResponse")
     
+    
+    
     # get RequestID
     request_id = get_field_in_xml(decoded_xml, "InResponseTo")
     if not request_id:
