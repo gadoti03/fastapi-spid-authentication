@@ -17,8 +17,8 @@ from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_fi
 from crud.saml_request import create_saml_request, use_saml_request
 
 from spid.acs_handler import verify_saml_signature as verify_saml_signature_acs, verify_saml_status, extract_spid_attributes
-from crud.session import get_or_create_session, update_session_with_spid_info
-from crud.user import create_user, get_user_by_cf
+from crud.session import get_or_create_session_by_session_id, update_session_with_spid_info
+from crud.user import create_user, get_user_by_cf, create_or_get_user
 
 from spid.exceptions import SpidConfigError, SpidSignatureError, SpidValidationError, SpidBusinessRuleError, SpidInternalError
 
@@ -64,17 +64,20 @@ def handle_authn_response(decoded_xml: bytes, db: Session, relay_state: str):
     if not verify_saml_status(decoded_xml):
         raise SpidValidationError("Invalid SAML status")
     
-    # get SessionIndex
-    sessionIndex = get_field_in_xml(decoded_xml, "SessionIndex")
-    if not sessionIndex:
-        raise SpidValidationError("SessionIndex not found in SAMLResponse")
-    
-    
-    
     # get RequestID
     request_id = get_field_in_xml(decoded_xml, "InResponseTo")
     if not request_id:
         raise SpidValidationError("InResponseTo not found in SAMLResponse")
+
+    # verify that the SAML response corresponds to a valid SAML request in the database
+    saml_request = use_saml_request(db, request_id)
+    if not saml_request:
+        raise SpidBusinessRuleError("No matching SAML request found for InResponseTo: " + request_id)
+    
+    # get SessionIndex
+    sessionIndex = get_field_in_xml(decoded_xml, "SessionIndex")
+    if not sessionIndex:
+        raise SpidValidationError("SessionIndex not found in SAMLResponse")
     
     # get user attributes
     user_attrs = extract_spid_attributes(decoded_xml)
@@ -92,3 +95,13 @@ def handle_authn_response(decoded_xml: bytes, db: Session, relay_state: str):
     # verify business rules
     if redidence != settings.REQUIRED_RESIDENCE:
         raise SpidBusinessRuleError("User does not meet residence requirements")
+    
+    # create or get user in the database
+    user = create_or_get_user(db, cf)
+
+    # update session (using session_id from saml_request)
+    session = update_session_with_spid_info(db, saml_request.session_id, sessionIndex, user.id)
+    if not session:
+        raise SpidInternalError("Session not found or expired for session_id: " + saml_request.session_id)
+    
+    return session.session_id

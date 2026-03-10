@@ -118,4 +118,5 @@ def render_saml_form(idp_url: str, saml_request: str, relay_state: str) -> str:
         </body>
     </html>
     """
-    return HTMLResponse(content=html_form)
+    return html_form
+#HTMLResponse(content=html_form)
