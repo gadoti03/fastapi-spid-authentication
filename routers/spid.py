@@ -1,8 +1,9 @@
+from urllib import response
+
 from settings import settings
 
 from fastapi import APIRouter, Request, Query, Depends, Response, HTTPException, Form
-from fastapi.responses import Response, FileResponse, RedirectResponse
-
+from fastapi.responses import Response, FileResponse, RedirectResponse, HTMLResponse
 import os, base64, zlib
 import xml.etree.ElementTree as ET
 from urllib.parse import quote, unquote
@@ -14,12 +15,12 @@ from spid.acs_handler import verify_saml_signature as verify_saml_signature_acs,
 from spid.slo_handler import generate_logout_request, verify_saml_signature as verify_saml_signature_slo
 from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml, parse_query, verify_saml_status
 
-from services.spid_service import get_spid_metadata, initiate_authn_request
+from services.spid_service import get_spid_metadata, initiate_authn_request, handle_authn_response
 
 from sqlalchemy.orm import Session
 from database.connection import get_db
 
-from crud.session import get_or_create_session, update_session_with_spid_info
+from crud.session import get_or_create_session_by_session_id, update_session_with_spid_info
 from crud.saml_request import create_saml_request, use_saml_request
 from crud.user import create_user, get_user_by_cf
 
@@ -36,65 +37,38 @@ async def spid_login(request: Request, db: Session = Depends(get_db), idp: str =
     
     relay_state = relay_state or "/" # se è vuoto e stringa vuota da errore -> metti pagina di default
 
-    # Get session ID from cookies
+    # get session ID from cookies
     session_id = request.cookies.get("session_id")
 
-    # Get existing session or create new one if not valid
-    db_session = get_or_create_session(db, session_id)
+    # get existing session or create new one if not valid
+    db_session = get_or_create_session_by_session_id(db, session_id)
     
-    return initiate_authn_request(idp, db, db_session, relay_state)
+    # get HTML form with auto-submit to IdP
+    html_form = initiate_authn_request(idp, db, db_session, relay_state)
+
+    return HTMLResponse(content=html_form)
 
 @router.post("/acs")
 async def acs_endpoint(db: Session = Depends(get_db), SAMLResponse: str = Form(...), relayState: str = Form("/")):
     
+    # decode SAMLResponse
     decoded_xml = base64.b64decode(SAMLResponse).decode("utf-8")
 
-    # verify signature
-    if not verify_saml_signature_acs(decoded_xml):
-        raise HTTPException(status_code=401, detail="Invalid SAML signature")
-    
-    # verify status
-    if not verify_saml_status(decoded_xml):
-        raise HTTPException(status_code=403, detail="Authentication Failed")
-    
-    # get SessionIndex
-    sessionIndex = get_field_in_xml(decoded_xml, "SessionIndex")
-    if not sessionIndex:
-        raise HTTPException(status_code=403, detail="Authentication Failed")
-    
-    print("SessionIndex =", sessionIndex)
+    # get eventually updated session_id after handling the SAML response
+    session_id = handle_authn_response(decoded_xml, db, relayState)
 
-    # get RequestID
-    request_id = get_field_in_xml(decoded_xml, "InResponseTo")
+    # create redirect response
+    response = RedirectResponse(url=relayState, status_code=302)
 
-    # verify that the SAML response corresponds to a valid SAML request in the database
-    saml_request = use_saml_request(db, request_id)
-    if not saml_request:
-        raise HTTPException(status_code=403, detail="Invalid SAML request")
+    # update session cookie in response    response = RedirectResponse(url=relayState, status_code=302)
+    response.set_cookie(
+        key="session_id", 
+        value=session_id,
+        httponly=True,
+        # secure=True,
+    )
 
-    print("Request ID /acs:", request_id)
-
-    # extract SPID attributes
-    user_attrs = extract_spid_attributes(decoded_xml)
-    
-    codice_fiscale = user_attrs.get("codice_fiscale")
-    residenza = user_attrs.get("residenza")
-
-    # verifica vincoli di residenza
-    if residenza != settings.REQUIRED_RESIDENCE:
-        raise HTTPException(status_code=403, detail="User does not meet residence requirements")
-    
-    # create user
-    user = get_user_by_cf(db, codice_fiscale)
-    if not user:
-        user = create_user(db, codice_fiscale)
-
-    # update session
-    update_session_with_spid_info(db, saml_request.session_id, sessionIndex, codice_fiscale)
-    
-    print(f"Utente autenticato: CF={codice_fiscale}, Residenza={residenza}")
-    
-    return RedirectResponse(url=relayState, status_code=302)
+    return response
 
 @router.get("/logout")
 async def spid_logout_request(session: str = Query(...)):
