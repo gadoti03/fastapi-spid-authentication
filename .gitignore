@@ -208,4 +208,5 @@ __marimo__/
 
 # Direttive
 direttive.txt
-DA_AGGIUSTARE.txt
+response.xml
+signed_authn_request.xml
