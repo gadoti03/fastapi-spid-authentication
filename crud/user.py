@@ -3,9 +3,15 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from database.models import User
 
+def create_or_get_user(db: Session, cf: str):
+    user = get_user_by_cf(db, cf)
+    if user:
+        return user
+    else:
+        return create_user(db, cf)
+
 def create_user(db: Session, cf: str):
     new_user = User(
-        id=str(uuid.uuid4()),
         cf=cf,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()

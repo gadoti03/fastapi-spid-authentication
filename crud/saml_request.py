@@ -7,7 +7,6 @@ from database.models import SamlRequest
 
 def create_saml_request(db: Session, request_id: str, session_id: str, request_type: str):
     new_request = SamlRequest(
-        id=str(uuid.uuid4()),
         request_id=request_id,
         session_id=session_id,
         request_type=request_type,
