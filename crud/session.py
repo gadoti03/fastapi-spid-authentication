@@ -6,11 +6,7 @@ from database.models import User
 
 def get_session(db: Session, session_id: str):
     session = db.query(DBSess).filter(DBSess.id == session_id).first()
-    if session and session.is_active:
-        return session
-    else:
-        new_session = create_session(db)
-        return new_session
+    return session
 
 # create a new session and return it
 def create_session(db: Session):
@@ -25,6 +21,13 @@ def create_session(db: Session):
     db.commit()
     db.refresh(new_session)
     return new_session
+
+def get_or_create_session(db: Session, session_id: str):
+    session = get_session(db, session_id)
+    if session and session.is_active and session.expires_at > datetime.utcnow():
+        return session
+    else:
+        return create_session(db)
 
 def update_session_with_spid_info(db: Session, session_id: str, spid_session_index: str, codice_fiscale: str):
     session = db.query(DBSess).filter(DBSess.id == session_id).first()
