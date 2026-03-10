@@ -1,4 +1,20 @@
 from fastapi import FastAPI
+
+from spid.handlers import (
+    spid_config_error_handler,
+    spid_signature_error_handler,
+    spid_validation_error_handler,
+    spid_internal_error_handler,
+    session_error_handler,
+)
+from spid.exceptions import (
+    SpidConfigError,
+    SpidSignatureError,
+    SpidValidationError,
+    SpidInternalError,
+    SessionError,
+)
+
 from database.connection import engine, Base
 
 from routers.login import router as login_router
@@ -13,7 +29,12 @@ from fastapi.responses import Response, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
+
+import logging
     
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -35,6 +56,13 @@ app.add_middleware(
 
 # create all tables
 Base.metadata.create_all(bind=engine)
+
+# exception handlers
+app.add_exception_handler(SpidConfigError, spid_config_error_handler)
+app.add_exception_handler(SpidSignatureError, spid_signature_error_handler)
+app.add_exception_handler(SpidValidationError, spid_validation_error_handler)
+app.add_exception_handler(SpidInternalError, spid_internal_error_handler)
+app.add_exception_handler(SessionError, session_error_handler)
 
 # root route
 @app.get("/", response_class=HTMLResponse)
