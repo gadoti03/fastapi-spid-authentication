@@ -58,3 +58,23 @@ def set_idp_id_by_session_id(db: Session, session_id: str, idp_id: str):
         db.refresh(session)
         return session
     return None
+
+def get_idp_id_by_id(db: Session, session_id: int):
+    session = get_session_by_id(db, session_id) # get not expired session
+    if session:
+        return session.idp_id
+    return None
+
+def get_session_by_session_index(db: Session, session_index: str):
+    session = db.query(DBSess).filter(
+        DBSess.spid_session_index == session_index,
+        DBSess.expires_at > datetime.utcnow()).first()
+    return session
+
+def invalidate_session_by_id(db: Session, session_id: int):
+    session = get_session_by_id(db, session_id) # get not expired session
+    if session:
+        session.is_active = False
+        db.commit()
+        db.refresh(session)
+    return session
