@@ -94,6 +94,7 @@ async def health():
                 <p>Nessuna sessione attiva.</p>
             </body>
             <a href="/login">Login</a>
+            <a href="/spid/logout">Logout</a>
         </html>
         """
 
