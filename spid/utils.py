@@ -1,3 +1,5 @@
+import json
+
 from settings import settings
 
 import os, base64, zlib
@@ -311,3 +313,43 @@ def parse_query(raw_query: str) -> dict:
         "Signature": signature_bytes,
         "query_to_verify": query_to_verify
     }
+
+def get_idp_url(idp: str, type: str, method: str) -> str:
+
+    IDPS_FILE = settings.IDPS_FILE
+
+    if type not in ["single_sign_on_service", "single_logout_service"]:
+        raise SpidConfigError(f"Invalid type: {type}. Must be 'single_sign_on_service' or 'single_logout_service'.")
+    if method not in ["HTTP-POST", "HTTP-Redirect"]:
+        raise SpidConfigError(f"Invalid method: {method}. Must be 'HTTP-POST' or 'HTTP-Redirect'.")
+
+    try:
+        # Load map IDP → URL
+        with open(IDPS_FILE, "r") as f:
+            idps_data = json.load(f)
+    except Exception as e:
+        raise SpidConfigError(f"Error loading IdPs file: {e}")
+
+    # Check IdP existence
+    if idp not in idps_data:
+        raise SpidConfigError(f"Unknown IdP: {idp}")
+    
+    # Get SSO URL
+    idp_entry = idps_data.get(idp)
+    if not idp_entry:
+        raise SpidConfigError(f"IdP {idp} not found")
+    
+    sso_list = idp_entry.get(type, [])
+    if not sso_list:
+        raise SpidConfigError(f"No {type} defined for IdP {idp}")
+        
+    # Find HTTP-Redirect binding 
+    slo_post = next((slo for slo in sso_list if slo.get("Binding") == f"urn:oasis:names:tc:SAML:2.0:bindings:{method}"), None)
+    if slo_post is None:
+        raise SpidConfigError(f"No {method} {type} found for IdP {idp}")
+
+    slo_url = slo_post["Location"]
+    if not slo_url:
+        raise SpidConfigError(f"No Location found for {method} {type} for IdP {idp}")
+    
+    return slo_url
