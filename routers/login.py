@@ -24,7 +24,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
         
     # Get session ID from cookies
     session_id = request.cookies.get("session_id")
-    
+
     # Get existing session or create new one if not valid
     db_session = get_or_create_session_by_session_id(db, session_id)
 
@@ -32,7 +32,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
     response = templates.TemplateResponse("home.html", {"request": request})
     response.set_cookie(
         key="session_id", 
-        value=db_session.id,
+        value=db_session.session_id,
         httponly=True,
         # secure=True,
     )

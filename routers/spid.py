@@ -1,4 +1,4 @@
-from urllib import response
+from urllib import request, response
 
 from settings import settings
 
@@ -15,12 +15,12 @@ from spid.acs_handler import verify_saml_signature as verify_saml_signature_acs,
 from spid.slo_handler import generate_logout_request, verify_saml_signature as verify_saml_signature_slo
 from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml, parse_query, verify_saml_status
 
-from services.spid_service import get_spid_metadata, initiate_authn_request, handle_authn_response
+from services.spid_service import get_spid_metadata, handle_logout_response, initiate_authn_request, handle_authn_response, initiate_logout_request
 
 from sqlalchemy.orm import Session
 from database.connection import get_db
 
-from crud.session import get_or_create_session_by_session_id, update_session_with_spid_info
+from crud.session import get_or_create_session_by_session_id, update_session_with_spid_info, get_session_by_session_id
 from crud.saml_request import create_saml_request, use_saml_request
 from crud.user import create_user, get_user_by_cf
 
@@ -44,7 +44,7 @@ async def spid_login(request: Request, db: Session = Depends(get_db), idp: str =
     db_session = get_or_create_session_by_session_id(db, session_id)
     
     # get HTML form with auto-submit to IdP
-    html_form = initiate_authn_request(idp, db, db_session, relay_state)
+    html_form = initiate_authn_request(db, idp, db_session, relay_state)
 
     return HTMLResponse(content=html_form)
 
@@ -55,7 +55,7 @@ async def acs_endpoint(db: Session = Depends(get_db), SAMLResponse: str = Form(.
     decoded_xml = base64.b64decode(SAMLResponse).decode("utf-8")
 
     # get eventually updated session_id after handling the SAML response
-    session_id = handle_authn_response(decoded_xml, db, relayState)
+    session_id = handle_authn_response(decoded_xml, db)
 
     # create redirect response
     response = RedirectResponse(url=relayState, status_code=302)
@@ -71,73 +71,34 @@ async def acs_endpoint(db: Session = Depends(get_db), SAMLResponse: str = Form(.
     return response
 
 @router.get("/logout")
-async def spid_logout_request(session: str = Query(...)):
+async def spid_logout_request(request: Request, db: Session = Depends(get_db),  relay_state: str = Form("")):
     
-    relay_state = "/"
-    ################################
-    # LETTURA NELLA PROPRIA SESSIONE
-    ################################
+    relay_state = relay_state or "/" # se è vuoto e stringa vuota da errore -> metti pagina di default
 
-    '''
-    with open("session.txt", "r") as f:
-        session = f.read()
-    '''
+    # get session ID from cookies
+    session_id = request.cookies.get("session_id")
 
-    url_slo = "https://demo.spid.gov.it/samlsso"
-    idp_name_qualifier = "https://demo.spid.gov.it"
-    ################################
-    ################################
-    ################################
-
-    # generate LogoutRequest
-    xml, request_id = generate_logout_request(session, idp_name_qualifier, url_slo)
-
-    print("Request ID /logout:", request_id)
-
-    # sign the LogoutRequest XML 
-    xml = sign_xml(xml_str = xml, key_path = get_key_path(), cert_path = get_cert_path(), after_tag="SessionIndex")
+    # get existing session
+    db_session = get_session_by_session_id(db, session_id)
     
-    # base64 encode the signed LogoutRequest XML
-    saml_request = encode_b64(xml)
+    # get HTML form with auto-submit to IdP
+    html_form = initiate_logout_request(db, db_session, relay_state)
     
     # render HTML con form auto-submit
-    return render_saml_form(url_slo, saml_request, relay_state)
+    return HTMLResponse(content=html_form)
 
 @router.get("/slo")
-async def spid_slo(request: Request):
+async def spid_slo(request: Request, db: Session = Depends(get_db)):
     
     # get raw query
     raw_query = request.scope["query_string"].decode("utf-8")
 
-    try:
-        slo_data = parse_query(raw_query)
-    except SpidInternalError as e:
-        raise HTTPException(status_code=500, detail=f"Params Invalid Error: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
-
-    decoded_xml = slo_data["decoded_xml"]
-    relay_state = slo_data["RelayState"]
-    sig_alg = slo_data["SigAlg"]
-    signature = slo_data["Signature"]
-    query_to_verify = slo_data["query_to_verify"]
-
-    # validate signature
-    try:
-        if not verify_saml_signature_slo(query_to_verify, signature, sig_alg, decoded_xml):
-            raise HTTPException(status_code=401, detail="Invalid SAML signature")
-    except SpidSignatureError as e:
-        raise HTTPException(status_code=500, detail=f"SPID Signature Error: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
-
-    # verify status
-    if not verify_saml_status(decoded_xml):
-        raise HTTPException(status_code=500, detail=f"Unsuccessuful Logout")
+    # handle logout response and get relay_state for redirect
+    relay_state = handle_logout_response(db, raw_query)
     
-    # get RequestID
-    request_id = get_field_in_xml(decoded_xml, "InResponseTo")
+    response = RedirectResponse(url=relay_state, status_code=302)
 
-    print("Request ID /slo:", request_id)
-    
-    return RedirectResponse(url=relay_state, status_code=302)
+    # update session cookie in response
+    response.delete_cookie(key="session_id")
+
+    return response
