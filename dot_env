@@ -1,11 +1,9 @@
 
-DATABASE_URL=postgresql://<user>:<password>@localhost:<port>/<name_db>
+DATABASE_URL=postgresql+psycopg2://<user>:<password>@localhost:<port>/<name_db>
 
 # PATH SETTINGS
 IDPS_FILE="/<...>/fastapi-spid-authentication/spid/static/idps_data.json"
 METADATA_FILE="/<...>/fastapi-spid-authentication/spid/static/metadata.xml"
-CERT_SP_FILE="/<...>/fastapi-spid-authentication/spid/static/certs/crt.pem"
-KEY_SP_FILE="/<...>/fastapi-spid-authentication/spid/static/certs/key.pem"
 
 # SPID SETTINGS
 COMMON_NAME="Comune di Roma"
@@ -21,3 +19,11 @@ ORGANIZATION_NAME="Comune di Roma"
 
 # OTHER SETTINGS
 URL_ROOT="http://localhost:8000"
+
+# METADATA SETTINGS
+CERT_DIR_PATH="/<...>/fastapi-spid-authentication/spid/static/certs/"
+METADATA_PATH="/<...>/fastapi-spid-authentication/spid/static/metadata.xml"
+METADATA_CLEAN_PATH="/<...>/fastapi-spid-authentication/spid/static/metadata-clean.xml"
+
+# DATA CONSTRAINTS
+REQUIRED_RESIDENCE = "Roma"
