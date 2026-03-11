@@ -64,7 +64,7 @@ def generate_logout_request_xml(sp_entity_id: str, sp_name_qualifier: str, sessi
     session_index.text = session_id
 
     # Serializzazione XML
-    xml_bytes = etree.tostring(logout_request, pretty_print=True, xml_declaration=False, encoding="UTF-8")
+    xml_bytes = etree.tostring(logout_request, pretty_print=False, xml_declaration=False, encoding="UTF-8")
     return xml_bytes.decode("utf-8"), request_id
 
 def render_logout_form(slo_url: str, saml_request: str, relay_state: str) -> HTMLResponse:
