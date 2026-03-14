@@ -210,3 +210,6 @@ __marimo__/
 direttive.txt
 response.xml
 signed_authn_request.xml
+
+# vscode settings
+.vscode/
