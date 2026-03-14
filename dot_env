@@ -1,5 +1,12 @@
-
+# in production, these would be set to secure values
+#   app_user: permits for the application to access and modify the database
+#       CONNECT, USAGE, CREATE sullo schema
+#       SELECT/INSERT/UPDATE/DELETE sulle tabelle necessarie
+#   admin: full database admin rights
+#   read_only: read-only access to the database
 DATABASE_URL=postgresql+psycopg2://<user>:<password>@localhost:<port>/<name_db>
+
+FRONTEND_PATH="https://localhost:5173"
 
 # PATH SETTINGS
 IDPS_FILE="/<...>/fastapi-spid-authentication/spid/static/idps_data.json"
