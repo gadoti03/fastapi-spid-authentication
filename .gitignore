@@ -213,3 +213,7 @@ signed_authn_request.xml
 
 # vscode settings
 .vscode/
+
+# cloudflare tunnel
+cloudflared/
+cloudflared-linux-amd64.deb
