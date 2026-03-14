@@ -1,8 +1,8 @@
 # routers/spid.py
 from settings import settings
 
-from fastapi import APIRouter, Request, Query, Depends, Response, HTTPException, Form
-from fastapi.responses import Response, FileResponse, RedirectResponse, HTMLResponse
+from fastapi import APIRouter, Request, Depends, Response, HTTPException, Form
+from fastapi.responses import Response, RedirectResponse, HTMLResponse
 
 import base64
 

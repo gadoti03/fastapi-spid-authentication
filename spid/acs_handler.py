@@ -19,7 +19,7 @@ def verify_saml_signature(xml_str: str) -> bool:
     issuer_node = issuer_node[0]
     
     if issuer_node is None or issuer_node.text is None:
-        raise SpidConfigError("Issuer not found in SAMLResponse")
+        raise SpidValidationError("Issuer not found in SAMLResponse")
     issuer_value = issuer_node.text
 
     try:
@@ -32,6 +32,7 @@ def verify_saml_signature(xml_str: str) -> bool:
     idps_info = idps.get(issuer_value)
     if not idps_info:
         raise SpidConfigError(f"No IdP info found for issuer {issuer_value}")
+    
     certs_list = idps_info.get("signing_certificate_x509", [])
     if not certs_list:
         raise SpidConfigError(f"No certificates found for IdP {issuer_value}")

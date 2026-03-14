@@ -103,7 +103,7 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str, after_tag: str = None)
     # Find the node to sign by ID
     id_nodes = root.xpath("//*[@ID]")
     if not id_nodes:
-        raise SpidConfigError("No node with ID attribute found to sign.")    
+        raise SpidValidationError("No node with ID attribute found to sign.")    
 
     # Create signer
     signer = XMLSigner(
@@ -147,7 +147,7 @@ def sign_xml(xml_str: str, key_path: str, cert_path: str, after_tag: str = None)
 def verify_saml_signature_internal(xml_str: str, cert_path: str = None, cert_data: str = None) -> bool:
 
     if (not cert_path and not cert_data) or (cert_path and cert_data):
-        raise Exception("Provide either cert_path or cert_data, not both or neither.")
+        raise SpidConfigError("Provide either cert_path or cert_data, not both or neither.")
     
     if cert_path:
         try:
@@ -167,7 +167,7 @@ def verify_saml_signature_internal(xml_str: str, cert_path: str = None, cert_dat
     # Find Signature node
     signature_node = xmlsec.tree.find_node(root, xmlsec.constants.NodeSignature)
     if signature_node is None:
-        raise SpidConfigError("Signature node not found in XML")
+        raise SpidValidationError("Signature node not found in XML")
 
     # Verify signature
     try:
@@ -195,7 +195,7 @@ def verify_saml_signature_external(query_string: str, signature: bytes, sig_alg:
     elif "sha512" in sig_alg_lower:
         digest = hashes.SHA512()
     else:
-        raise Exception(f"Algorithm not supported: {sig_alg}")
+        raise SpidValidationError(f"Algorithm not supported: {sig_alg}")
 
     # Verifica la firma
     pub_key.verify(

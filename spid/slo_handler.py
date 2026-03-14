@@ -9,6 +9,8 @@ from lxml import etree
 
 from spid.utils import base64_to_pem, verify_saml_signature_external
 
+from spid.exceptions import SpidConfigError, SpidValidationError
+
 IDPS_FILE = settings.IDPS_FILE
 
 def generate_logout_request(session_id: str, idp_name_qualifier: str, idp_slo_url: str):
@@ -92,18 +94,23 @@ def verify_saml_signature(query_string: str, signature: bytes, sig_alg: str, xml
         issuer_node = root.xpath(".//saml:Issuer", namespaces={"saml": "urn:oasis:names:tc:SAML:2.0:assertion"})[0]
         issuer_value = issuer_node.text.strip()
     except Exception:
-        raise Exception("Impossible to extract Issuer from SAMLResponse")
+        raise SpidValidationError("Impossible to extract Issuer from SAMLResponse")
 
     # Carica i certificati dell'IdP
     try:
         with open(IDPS_FILE, "r") as f:
             idps = json.load(f)
+
         idp_info = idps.get(issuer_value)
-        certs_b64 = idp_info.get("signing_certificate_x509", [])
+        if not idp_info:
+            raise SpidValidationError(f"IdP '{issuer_value}' not found in configuration")
+
+        certs_b64 = idp_info.get("signing_certificate_x509")
         if not certs_b64:
-            raise Exception(f"No certificates found for IdP {issuer_value}")
-    except Exception as e:
-        raise Exception(f"Error loading IdP certificates: {e}")
+            raise SpidValidationError(f"No certificates found for IdP {issuer_value}")
+
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        raise SpidConfigError(f"Error loading IdP configuration: {e}")
 
     # Verifica la firma con tutti i certificati disponibili
     for b64_cert in certs_b64:

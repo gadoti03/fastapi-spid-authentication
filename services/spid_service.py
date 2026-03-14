@@ -37,7 +37,7 @@ def initiate_authn_request(db: Session, idp: str, db_session: DBSess, relay_stat
 
     db_session = SessionRepository.set_idp(db, db_session, idp) # update session with idp_id
     if not db_session:
-        raise SpidInternalError("Session not found or expired for session_id: " + db_session.session_id)
+        raise SessionError("Session not found or expired for session_id: " + db_session.session_id)
     
     # generate the AuthnRequest XML
     xml, request_id = generate_authn_request(idp_url)
@@ -104,15 +104,15 @@ def handle_authn_response(decoded_xml: bytes, db: Session):
     # create or get user in the database
     user = get_or_create_user(db, cf)
 
-    # update sessionì
+    # update session
     db_session = SessionRepository.get_by_id(db, saml_request.session_id)
+    if not db_session:
+        raise SessionError("Session not found or expired for session_id: " + saml_request.session_id)
+    
     db_session = SessionRepository.set_spid_info(db, db_session, sessionIndex, user.id)
     if not db_session:
-        raise SpidInternalError("Session not found or expired for session_id: " + saml_request.session_id)
+        raise SessionError("Session not found or expired for session_id: " + saml_request.session_id)
     
-    # print(f"User {user.cf} authenticated successfully with SPID, session updated with SessionIndex: {sessionIndex}")
-    # print(f"Session ID: {db_session.session_id}, User ID: {db_session.user_id}, SessionIndex: {sessionIndex}")
-
     return db_session.session_id
 
 def initiate_logout_request( db: Session, db_session: DBSess, relay_state: str):
@@ -169,6 +169,6 @@ def handle_logout_response(db: Session, raw_query: str):
     # verify that the SAML response corresponds to a valid SAML request in the database
     saml_request = SAMLRequestRepository.use_request(db, request_id)
     if not saml_request:
-        raise SpidBusinessRuleError("No matching SAML request found for InResponseTo: " + request_id)
+        raise SpidValidationError("No matching SAML request found for InResponseTo: " + request_id)
     
     return relay_state

@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
-from fastapi.responses import HTMLResponse
 
 from sqlalchemy.orm import Session
 from database.connection import get_db
@@ -33,6 +32,8 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         key="session_id", 
         value=db_session.session_id,
         httponly=True,
-        # secure=True,
+        secure=True,
+        samesite="none",
+        path="/"
     )
     return response
