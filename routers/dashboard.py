@@ -1,7 +1,6 @@
 # routers/dashboard.py
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
-from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 
 from sqlalchemy.orm import Session
@@ -10,7 +9,6 @@ from database.connection import get_db
 from repositories.session_repository import SessionRepository
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 @router.get("/dashboard", response_class=Response) # response_class=Response: avoid default JSON response
 async def dashboard(request: Request, db: Session = Depends(get_db)):

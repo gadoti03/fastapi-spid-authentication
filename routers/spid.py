@@ -1,7 +1,7 @@
 # routers/spid.py
 from settings import settings
 
-from fastapi import APIRouter, Request, Depends, Response, HTTPException, Form
+from fastapi import APIRouter, Request, Depends, Response, Form
 from fastapi.responses import Response, RedirectResponse, HTMLResponse
 
 import base64
@@ -47,11 +47,6 @@ async def acs_endpoint(db: Session = Depends(get_db), SAMLResponse: str = Form(.
     # get eventually updated session_id after handling the SAML response
     session_id = handle_authn_response(decoded_xml, db)
 
-    # verify user in session_in 
-    session = SessionRepository.get_by_session_id(db, session_id)
-    if not session or not session.user_id:
-        raise HTTPException(status_code=401, detail="Authentication failed")
-    
     # create redirect response
     response = RedirectResponse(url=settings.FRONTEND_PATH + RelayState, status_code=302)
 

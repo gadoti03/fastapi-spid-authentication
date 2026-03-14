@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.requests import Request
 from fastapi.responses import Response, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 from sqlalchemy.orm import Session
 from database.connection import get_db
@@ -12,7 +11,6 @@ from services.session_service import get_or_create_session_by_session_id, get_id
 from repositories.user_repository import UserRepository
 
 router = APIRouter()
-templates = Jinja2Templates(directory="templates")
 
 @router.get("/login", response_class=Response)
 async def login(request: Request, db: Session = Depends(get_db)):
