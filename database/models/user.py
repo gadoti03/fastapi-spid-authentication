@@ -1,7 +1,8 @@
+# database/models/user.py
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime
 from database.connection import Base
+from sqlalchemy import Column, Integer, String, DateTime
 
 class User(Base): # da modificare
     __tablename__ = "users"

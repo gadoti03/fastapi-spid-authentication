@@ -1,9 +1,7 @@
-from settings import settings
-
-from fastapi import HTTPException
+# services/spid_service.py
 from fastapi.responses import FileResponse
 
-from spid.exceptions import MetadataNotFoundError, SessionError
+from settings import settings
 
 import os
 
@@ -11,22 +9,16 @@ from sqlalchemy.orm import Session
 from database.models import Session as DBSess
 
 from spid.authn_request import generate_authn_request, render_saml_form
-
-from spid.slo_handler import generate_logout_request
-from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml, parse_query, verify_saml_status
-
-from spid.utils import get_idp_url
-
-from crud.saml_request import create_saml_request, use_saml_request
-
 from spid.acs_handler import verify_saml_signature as verify_saml_signature_acs, verify_saml_status, extract_spid_attributes
+from spid.slo_handler import verify_saml_signature as verify_saml_signature_slo, generate_logout_request
+from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml, parse_query, verify_saml_status, get_idp_url
+from spid.exceptions import MetadataNotFoundError, SpidConfigError, SpidSignatureError, SpidValidationError, SpidBusinessRuleError, SpidInternalError, SessionError
 
-from spid.slo_handler import verify_saml_signature as verify_saml_signature_slo
+from repositories.saml_request_repository import SAMLRequestRepository
+from repositories.session_repository import SessionRepository
 
-from crud.session import get_idp_id_by_id, get_or_create_session_by_session_id, invalidate_session_by_id, update_session_with_spid_info, set_idp_id_by_session_id, get_session_by_session_id
-from crud.user import create_user, get_user_by_cf, create_or_get_user
-
-from spid.exceptions import SpidConfigError, SpidSignatureError, SpidValidationError, SpidBusinessRuleError, SpidInternalError
+from services.session_service import is_session_valid
+from services.user_service import get_or_create_user
 
 METADATA_FILE = settings.METADATA_FILE
 
@@ -41,9 +33,9 @@ def initiate_authn_request(db: Session, idp: str, db_session: DBSess, relay_stat
     # get idp url
     idp_url = get_idp_url(idp, "single_sign_on_service", "HTTP-POST")
 
-    # print("IDP URL:", idp_url + " for idp: " + idp)
+    print("IDP URL:", idp_url + " for idp: " + idp)
 
-    db_session = set_idp_id_by_session_id(db, db_session.session_id, idp) # aggiorno la sessione con l'idp scelto dall'utente
+    db_session = SessionRepository.set_idp(db, db_session, idp) # update session with idp_id
     if not db_session:
         raise SpidInternalError("Session not found or expired for session_id: " + db_session.session_id)
     
@@ -51,7 +43,7 @@ def initiate_authn_request(db: Session, idp: str, db_session: DBSess, relay_stat
     xml, request_id = generate_authn_request(idp_url)
     
     # save the SAML request in the database
-    create_saml_request(db, request_id, db_session.id, "AuthnRequest")
+    SAMLRequestRepository.create(db, request_id, db_session.id, "AuthnRequest")
     
     # sign the AuthnRequest XML 
     xml = sign_xml(xml_str = xml, key_path = get_key_path(), cert_path = get_cert_path(), after_tag="Issuer")
@@ -77,8 +69,13 @@ def handle_authn_response(decoded_xml: bytes, db: Session):
     if not request_id:
         raise SpidValidationError("InResponseTo not found in SAMLResponse")
 
+    # get saml_request from the database
+    saml_request = SAMLRequestRepository.get_by_request_id(db, request_id)
+    if not saml_request:
+        raise SpidValidationError("No matching SAML request found for InResponseTo: " + request_id)
+
     # verify that the SAML response corresponds to a valid SAML request in the database
-    saml_request = use_saml_request(db, request_id)
+    saml_request = SAMLRequestRepository.use_request(db, saml_request)
     if not saml_request:
         raise SpidBusinessRuleError("No matching SAML request found for InResponseTo: " + request_id)
     
@@ -105,39 +102,43 @@ def handle_authn_response(decoded_xml: bytes, db: Session):
         raise SpidBusinessRuleError("User does not meet residence requirements")
     
     # create or get user in the database
-    user = create_or_get_user(db, cf)
+    user = get_or_create_user(db, cf)
 
-    # update session (using session_id from saml_request)
-    session = update_session_with_spid_info(db, saml_request.session_id, sessionIndex, user.id)
-    if not session:
+    # update sessionì
+    db_session = SessionRepository.get_by_id(db, saml_request.session_id)
+    db_session = SessionRepository.set_spid_info(db, db_session, sessionIndex, user.id)
+    if not db_session:
         raise SpidInternalError("Session not found or expired for session_id: " + saml_request.session_id)
     
-    return session.session_id
+    # print(f"User {user.cf} authenticated successfully with SPID, session updated with SessionIndex: {sessionIndex}")
+    # print(f"Session ID: {db_session.session_id}, User ID: {db_session.user_id}, SessionIndex: {sessionIndex}")
+
+    return db_session.session_id
 
 def initiate_logout_request( db: Session, db_session: DBSess, relay_state: str):
 
     # verify session
-    if not db_session or not db_session.is_active:
+    if not is_session_valid(db_session):
         raise SessionError("Session not found or expired for spid-logout for session_id: " + db_session.session_id)
     
-    # invalidate session in the database (set is_active to False)
-    invalidate_session_by_id(db, db_session.id)
-    
     # get idp_url
-    idp_id = get_idp_id_by_id(db, db_session.id)
+    idp_id = db_session.idp_id
     url_slo = get_idp_url(idp_id, "single_logout_service", "HTTP-Redirect")
 
     # generate LogoutRequest
     xml, request_id = generate_logout_request(db_session.session_id, idp_id, url_slo)
     
     # save the SAML request in the database
-    create_saml_request(db, request_id, db_session.id, "LogoutRequest")
+    SAMLRequestRepository.create(db, request_id, db_session.id, "LogoutRequest")
 
     # sign the LogoutRequest XML 
     xml = sign_xml(xml_str = xml, key_path = get_key_path(), cert_path = get_cert_path(), after_tag="SessionIndex")
     
     # base64 encode the signed LogoutRequest XML
     saml_request = encode_b64(xml)
+
+    # invalidate session in the database (set is_active to False)
+    SessionRepository.invalidate(db, db_session)
     
     # render HTML con form auto-submit
     return render_saml_form(url_slo, saml_request, relay_state)
@@ -166,7 +167,7 @@ def handle_logout_response(db: Session, raw_query: str):
         raise SpidValidationError("InResponseTo not found in SAML LogoutResponse")
     
     # verify that the SAML response corresponds to a valid SAML request in the database
-    saml_request = use_saml_request(db, request_id)
+    saml_request = SAMLRequestRepository.use_request(db, request_id)
     if not saml_request:
         raise SpidBusinessRuleError("No matching SAML request found for InResponseTo: " + request_id)
     

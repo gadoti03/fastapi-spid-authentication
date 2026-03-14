@@ -1,3 +1,4 @@
+# spid/exceptions.py
 class SpidConfigError(Exception):
     """wrong config  (missing file, missing params, unknown idp)"""
     pass

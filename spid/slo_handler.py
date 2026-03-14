@@ -1,3 +1,4 @@
+# spid/slo_handler.py
 from settings import settings
 
 from fastapi.responses import HTMLResponse
@@ -6,7 +7,6 @@ import uuid, json
 from datetime import datetime, timezone
 from lxml import etree
 
-from spid.exceptions import SpidConfigError, SpidValidationError 
 from spid.utils import base64_to_pem, verify_saml_signature_external
 
 IDPS_FILE = settings.IDPS_FILE

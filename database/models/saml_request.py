@@ -1,12 +1,10 @@
-from datetime import datetime
+# database/models/saml_request.py
+from datetime import datetime, timedelta
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
 from database.connection import Base
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 
-import secrets
-
-class SamlRequest(Base):
+class SAMLRequest(Base):
     __tablename__ = "saml_requests"
 
     id = Column(Integer, primary_key=True) # SAML Request ID
@@ -14,5 +12,5 @@ class SamlRequest(Base):
     session_id = Column(Integer, ForeignKey("sessions.id")) # foreign key to Session
     request_type = Column(String) # e.g. "AuthnRequest", "LogoutRequest" -> to handle with enum
     created_at = Column(DateTime, default=datetime.utcnow)
-    expires_at = Column(DateTime, default=lambda: datetime.utcnow() + datetime.timedelta(minutes=5))
+    expires_at = Column(DateTime, default=lambda: datetime.utcnow() + timedelta(minutes=5))
     is_used = Column(Boolean, default=False)

@@ -1,16 +1,16 @@
-import json
-
+# spid/utils.py
 from settings import settings
 
-import os, base64, zlib
+import os, base64, zlib, json
+
 from lxml import etree
 import xmlsec
 from signxml import XMLSigner, methods
 from urllib.parse import unquote
 import xml.etree.ElementTree as ET
+
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography import x509
 

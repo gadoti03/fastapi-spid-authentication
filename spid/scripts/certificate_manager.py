@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import os
-import tempfile
-from pathlib import Path
 from lxml import etree
 
 def add_certificate_to_metadata(metadata_path: str, cert_path: str):

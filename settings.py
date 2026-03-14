@@ -4,6 +4,9 @@ class Settings(BaseSettings):
     # DATABASE
     DATABASE_URL: str
 
+    # PATH FRONTEND
+    FRONTEND_PATH: str
+
     # PATH SETTINGS
     IDPS_FILE: str
     METADATA_FILE: str

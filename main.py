@@ -44,11 +44,14 @@ templates = Jinja2Templates(directory="templates")
 #   allow all origins to access the API (with fetch API from browser)
 #   set header Access-Control-Allow-Origin: <origin>
 #   is a protection browser-side (it act on the client's browser)
-origins = ["*"]
+# origins = ["*"]  <-- ELIMINA QUESTO, dà errore con allow_credentials=True
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "https://localhost:5173",
+        "https://gabrielegotico.it"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

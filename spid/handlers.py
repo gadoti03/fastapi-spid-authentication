@@ -1,5 +1,7 @@
+# spid/handlers.py
 from fastapi import Request
 from fastapi.responses import HTMLResponse
+
 from spid.exceptions import (
     SpidConfigError,
     SpidSignatureError,

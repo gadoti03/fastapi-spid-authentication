@@ -1,8 +1,5 @@
-from typing import Optional
-from uuid import UUID
-
+# schemas/models.py
 from pydantic import BaseModel # define and validate data using classes
-
 
 class HealthResponse(BaseModel):
     status: str

@@ -1,28 +1,18 @@
-from urllib import request, response
-
+# routers/spid.py
 from settings import settings
 
 from fastapi import APIRouter, Request, Query, Depends, Response, HTTPException, Form
 from fastapi.responses import Response, FileResponse, RedirectResponse, HTMLResponse
-import os, base64, zlib
-import xml.etree.ElementTree as ET
-from urllib.parse import quote, unquote
 
-from schemas.models import SpidLoginRequest
-from spid.exceptions import SpidConfigError, SpidSignatureError, SpidInternalError
-from spid.authn_request import generate_authn_request, get_idp_url, render_saml_form
-from spid.acs_handler import verify_saml_signature as verify_saml_signature_acs, verify_saml_status, extract_spid_attributes
-from spid.slo_handler import generate_logout_request, verify_saml_signature as verify_saml_signature_slo
-from spid.utils import get_key_path, get_cert_path, sign_xml, encode_b64, get_field_in_xml, parse_query, verify_saml_status
-
-from services.spid_service import get_spid_metadata, handle_logout_response, initiate_authn_request, handle_authn_response, initiate_logout_request
+import base64
 
 from sqlalchemy.orm import Session
 from database.connection import get_db
 
-from crud.session import get_or_create_session_by_session_id, update_session_with_spid_info, get_session_by_session_id
-from crud.saml_request import create_saml_request, use_saml_request
-from crud.user import create_user, get_user_by_cf
+from services.spid_service import get_spid_metadata, handle_logout_response, initiate_authn_request, handle_authn_response, initiate_logout_request
+from services.session_service import get_or_create_session_by_session_id
+
+from repositories.session_repository import SessionRepository
 
 router = APIRouter()
 
@@ -42,14 +32,14 @@ async def spid_login(request: Request, db: Session = Depends(get_db), idp: str =
 
     # get existing session or create new one if not valid
     db_session = get_or_create_session_by_session_id(db, session_id)
-    
+
     # get HTML form with auto-submit to IdP
     html_form = initiate_authn_request(db, idp, db_session, relay_state)
 
     return HTMLResponse(content=html_form)
 
 @router.post("/acs")
-async def acs_endpoint(db: Session = Depends(get_db), SAMLResponse: str = Form(...), relayState: str = Form("/")):
+async def acs_endpoint(db: Session = Depends(get_db), SAMLResponse: str = Form(...), RelayState: str = Form("/")):
     
     # decode SAMLResponse
     decoded_xml = base64.b64decode(SAMLResponse).decode("utf-8")
@@ -57,16 +47,17 @@ async def acs_endpoint(db: Session = Depends(get_db), SAMLResponse: str = Form(.
     # get eventually updated session_id after handling the SAML response
     session_id = handle_authn_response(decoded_xml, db)
 
+    # verify user in session_in 
+    session = SessionRepository.get_by_session_id(db, session_id)
+    if not session or not session.user_id:
+        raise HTTPException(status_code=401, detail="Authentication failed")
+    
     # create redirect response
-    response = RedirectResponse(url=relayState, status_code=302)
+    response = RedirectResponse(url=settings.FRONTEND_PATH + RelayState, status_code=302)
 
-    # update session cookie in response    response = RedirectResponse(url=relayState, status_code=302)
-    response.set_cookie(
-        key="session_id", 
-        value=session_id,
-        httponly=True,
-        # secure=True,
-    )
+    # costruisco il cookie manualmente, con Partitioned se necessario
+    cookie_header = f"session_id={session_id}; Path=/; Secure; HttpOnly; SameSite=None; Partitioned;"
+    response.headers["Set-Cookie"] = cookie_header
 
     return response
 
@@ -79,7 +70,7 @@ async def spid_logout_request(request: Request, db: Session = Depends(get_db),  
     session_id = request.cookies.get("session_id")
 
     # get existing session
-    db_session = get_session_by_session_id(db, session_id)
+    db_session = SessionRepository.get_by_session_id(db, session_id)
     
     # get HTML form with auto-submit to IdP
     html_form = initiate_logout_request(db, db_session, relay_state)

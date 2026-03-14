@@ -1,6 +1,5 @@
+# spid/authn_request.py
 from settings import settings
-
-from fastapi.responses import HTMLResponse
 
 import json
 import uuid

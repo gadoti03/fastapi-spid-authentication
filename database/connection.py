@@ -1,6 +1,8 @@
+# database/connection.py
+from settings import settings
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from settings import settings
 
 DATABASE_URL = settings.DATABASE_URL
 

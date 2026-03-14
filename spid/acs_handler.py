@@ -1,7 +1,6 @@
+# spid/acs_handler.py
 from settings import settings
 
-import textwrap
-import xmlsec
 import json
 import lxml.etree as etree
 
