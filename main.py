@@ -50,7 +50,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://localhost:5173",
-        "https://gabrielegotico.it"
     ],
     allow_credentials=True,
     allow_methods=["*"],
