@@ -234,8 +234,6 @@ def get_field_in_xml(xml_str: str, field: str) -> str | None:
         print(f"XML parsing error: {e}")
         return None
     
-from lxml import etree
-
 def verify_saml_status(xml_str: str) -> bool:
 
     try:
