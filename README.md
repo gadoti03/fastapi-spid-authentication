@@ -85,7 +85,7 @@ Start the FastAPI server:
 uvicorn main:app --reload
 ```
 
-Endpoints for login, logout, and session management will be available at `/api/...`.
+Endpoints for login, logout, and session management will be available at `/...` and `/spid/...`.
 
 ---
 
