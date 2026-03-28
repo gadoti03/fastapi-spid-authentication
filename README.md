@@ -2,6 +2,15 @@
 
 FastAPI backend that handles the full SPID authentication flow for a Service Provider. It manages communication with Identity Providers, builds and validates SAML messages, and exposes ready-to-use endpoints for login, logout, and session management.
 
+## Demo
+
+In this demo, I created a frontend in React that interacts with the backend in this repository.  
+It shows the workflow of **authentication** and **logout** using SPID.
+
+![Demo of SPID authentication workflow](screencast.gif)
+
+> The GIF above demonstrates the full login and logout flow with SPID, connecting the React frontend to the backend.
+
 ---
 
 ## Requirements
